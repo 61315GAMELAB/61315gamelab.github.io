@@ -1,3 +1,13 @@
+---
+title: meeting 250222
+date: 2025-02-22
+description: meeting script
+categories:
+    - meeting
+
+---
+
+
 # 시스템
 
 ## 2025-1 계획표 점검
