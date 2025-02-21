@@ -1,10 +1,9 @@
 ---
 title: meeting 250222
-date: 2025-02-22
+date: 2025-0-22 00:00:00+0000
 description: meeting script
 categories:
     - meeting
-
 ---
 
 
