@@ -1,10 +1,10 @@
 +++
-title = "meeting 250222"
+title = "M250222"
 date = "2025-02-21"
 draft = false
-description = "meeting script"
+description = "2025.02.22 회의록"
 categories = [
-    "Meeting"
+    "meeting"
 ]
 tags = [
     "meeting"
