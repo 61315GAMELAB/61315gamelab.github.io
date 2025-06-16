@@ -1,7 +1,7 @@
 +++
 title = "M250308"
 date = "2025-03-07"
-draft = false
+draft = true
 description = "2025.03.08 회의록"
 categories = [
     "meeting"
