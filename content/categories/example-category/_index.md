@@ -1,6 +1,7 @@
 ---
 title: Example Category
 description: A description of this category
+draft: true
 image:
 
 # Badge style
