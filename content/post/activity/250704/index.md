@@ -1,5 +1,5 @@
 +++
-title = "A250704"
+title = "2025년 AiCON 전시"
 date = "2025-07-04"
 draft = false
 description = "✨ AI를 활용한 게임 전시 AiCON! ✨"
