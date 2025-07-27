@@ -7,21 +7,6 @@
 #icon = "home"
 #newtab = true
 
-[[social]]
-identifier = "github"
-name = "GitHub"
-url = "https://github.com/61315gamelab"
-
-[social.params]
-icon = "brand-github"
-
-[[social]]
-identifier = "youtube"
-name = "Youtube"
-url = "https://www.youtube.com/@%EC%84%B1%EA%B7%A0%EA%B4%80%EB%8C%80%EA%B2%8C%EC%9E%84%EC%A0%9C%EC%9E%91"
-
-[social.params]
-icon = "brand-youtube"
 
 [[social]]
 identifier = "instagram"
