@@ -9,7 +9,10 @@ categories = [
 tags = [
     "activity"
 ]
+image = "image3.png"
 +++
 
 ## 제목
 ### 이 사이트는 최고
+
+![](image3.png)
