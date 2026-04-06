@@ -50,17 +50,21 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - name: Checkout recruitment app
+        if: ${{ secrets.APPLY_REPO_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           repository: 4jupalzza/gamelab61315
           path: _apply-source
+          token: ${{ secrets.APPLY_REPO_TOKEN }}
       - name: Setup Node.js
+        if: ${{ secrets.APPLY_REPO_TOKEN != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: _apply-source/package-lock.json
       - name: Build recruitment app
+        if: ${{ secrets.APPLY_REPO_TOKEN != '' }}
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -69,10 +73,16 @@ jobs:
           npm ci
           npm run build
       - name: Sync recruitment app into Hugo static/apply
+        if: ${{ secrets.APPLY_REPO_TOKEN != '' }}
         run: |
           rm -rf static/apply
           mkdir -p static/apply
           cp -R _apply-source/dist/. static/apply/
+      - name: Use committed recruitment app bundle
+        if: ${{ secrets.APPLY_REPO_TOKEN == '' }}
+        run: |
+          test -f static/apply/index.html
+          echo "APPLY_REPO_TOKEN not configured. Using committed static/apply bundle."
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
