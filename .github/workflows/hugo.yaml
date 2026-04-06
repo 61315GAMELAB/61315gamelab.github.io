@@ -6,6 +6,9 @@ on:
   push:
     branches:
       - main
+  repository_dispatch:
+    types:
+      - recruitment-sync
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -33,6 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HUGO_VERSION: 0.141.0
+      NODE_VERSION: 20
     steps:
       - name: Install Hugo CLI
         run: |
@@ -45,11 +49,33 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+      - name: Checkout recruitment app
+        uses: actions/checkout@v4
+        with:
+          repository: 4jupalzza/gamelab61315
+          path: _apply-source
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: _apply-source/package-lock.json
+      - name: Build recruitment app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          cd _apply-source
+          npm ci
+          npm run build
+      - name: Sync recruitment app into Hugo static/apply
+        run: |
+          rm -rf static/apply
+          mkdir -p static/apply
+          cp -R _apply-source/dist/. static/apply/
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
-      - name: Install Node.js dependencies
-        run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
       - name: Build with Hugo
         env:
           HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
