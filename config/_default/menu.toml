@@ -7,6 +7,15 @@
 #icon = "home"
 #newtab = true
 
+[[main]]
+identifier = "apply"
+name = "Apply"
+url = "/apply/"
+weight = 4
+
+[main.params]
+icon = "link"
+newTab = true
 
 [[social]]
 identifier = "instagram"
