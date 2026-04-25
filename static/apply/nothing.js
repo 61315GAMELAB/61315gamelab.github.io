@@ -174,87 +174,6 @@
     cards.forEach((card) => observer.observe(card));
   }
 
-  function setupSectionSnap() {
-    if (reduceMotion) return;
-
-    let wheelSum = 0;
-    let wheelTimer = 0;
-    let snapping = false;
-    let releaseTimer = 0;
-
-    function isHomeRoute() {
-      return !window.location.hash || window.location.hash === "#/";
-    }
-
-    function getSnapTargets() {
-      return Array.from(document.querySelectorAll("#root > .min-h-screen > section, #root footer"));
-    }
-
-    function currentTargetIndex(targets) {
-      const viewportAnchor = window.scrollY + window.innerHeight * 0.2;
-      let bestIndex = 0;
-      let bestDistance = Number.POSITIVE_INFINITY;
-
-      targets.forEach((target, index) => {
-        const top = target.getBoundingClientRect().top + window.scrollY;
-        const distance = Math.abs(top - viewportAnchor);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestIndex = index;
-        }
-      });
-
-      return bestIndex;
-    }
-
-    function snapTo(index, targets) {
-      const target = targets[index];
-      if (!target) return;
-
-      snapping = true;
-      wheelSum = 0;
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.clearTimeout(releaseTimer);
-      releaseTimer = window.setTimeout(() => {
-        snapping = false;
-      }, 1050);
-    }
-
-    window.addEventListener(
-      "wheel",
-      (event) => {
-        if (!isHomeRoute() || event.ctrlKey || event.metaKey || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
-
-        const targets = getSnapTargets();
-        if (targets.length < 2) return;
-
-        event.preventDefault();
-
-        if (snapping) {
-          return;
-        }
-
-        window.clearTimeout(wheelTimer);
-        wheelSum += event.deltaY;
-        wheelTimer = window.setTimeout(() => {
-          wheelSum = 0;
-        }, 180);
-
-        if (Math.abs(wheelSum) < 190) return;
-
-        const currentIndex = currentTargetIndex(targets);
-        const direction = wheelSum > 0 ? 1 : -1;
-        const nextIndex = Math.max(0, Math.min(targets.length - 1, currentIndex + direction));
-
-        wheelSum = 0;
-        if (nextIndex === currentIndex) return;
-
-        snapTo(nextIndex, targets);
-      },
-      { passive: false },
-    );
-  }
-
   function insertBreakAfterText(paragraph, marker) {
     const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
     let node = walker.nextNode();
@@ -309,7 +228,6 @@
     window.setTimeout(() => releaseFramerInlineState(document), 350);
     window.setTimeout(() => releaseFramerInlineState(document), 1200);
     setupScrollReveals();
-    setupSectionSnap();
     setupAboutLineBreaks();
   });
 })();
