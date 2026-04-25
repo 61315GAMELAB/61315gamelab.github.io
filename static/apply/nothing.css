@@ -378,6 +378,14 @@ h6,
   text-align: left !important;
 }
 
+#root section#qa .mt-12.text-center {
+  text-align: center !important;
+}
+
+#root section#qa .mt-12.text-center a {
+  justify-content: center !important;
+}
+
 #root .text-muted-foreground,
 #root .text-foreground\/80 {
   color: rgba(255, 255, 255, .58) !important;
