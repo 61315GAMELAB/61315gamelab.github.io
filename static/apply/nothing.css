@@ -102,7 +102,7 @@ h6,
 #root > .min-h-screen > section:first-of-type::before {
   content: "";
   position: absolute;
-  inset: clamp(86px, 9vw, 124px) max(18px, calc((100vw - 1180px) / 2)) clamp(46px, 7vw, 88px);
+  inset: clamp(86px, 9vw, 124px) max(24px, calc((100vw - 1500px) / 2)) clamp(34px, 7vw, 78px);
   border: 1px solid rgba(255, 255, 255, .14);
   border-radius: 10px;
   background:
@@ -118,20 +118,20 @@ h6,
   content: "2026년 하반기 모집";
   position: absolute;
   top: clamp(106px, 11vw, 146px);
-  left: max(36px, calc((100vw - 1120px) / 2));
+  left: max(48px, calc((100vw - 1420px) / 2));
   z-index: 1;
   color: rgba(255, 255, 255, .42);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: .04em !important;
+  display: none;
 }
 
 #root > .min-h-screen > section:first-of-type > .container {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
-  align-items: center;
-  gap: clamp(28px, 5vw, 72px);
-  max-width: 1180px;
+  display: block;
+  position: relative;
+  z-index: 3;
+  max-width: min(1500px, calc(100vw - 88px));
   min-height: calc(94svh - 64px);
   padding-top: 66px;
   padding-bottom: 72px;
@@ -139,14 +139,18 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type > .container::before {
-  content: "PARTS\A DESIGN    ARTS    DEV    SOUND\A\A PIPELINE\A TASK  >  INTERVIEW  >  MATCH\A STATUS    OPEN";
+  content: "PARTS\A DESIGN / ARTS / DEV / SOUND";
   white-space: pre;
-  min-height: 360px;
+  position: absolute;
+  left: 0;
+  bottom: clamp(18px, 5svh, 54px);
+  width: min(620px, 44vw);
+  min-height: 0;
   border: 1px solid rgba(255, 255, 255, .13);
   border-radius: 10px;
-  padding: 28px;
+  padding: 18px 22px;
   color: rgba(255, 255, 255, .82);
-  font-size: clamp(13px, 1.4vw, 19px);
+  font-size: clamp(12px, .95vw, 15px);
   line-height: 1.7;
   background:
     linear-gradient(90deg, transparent 70%, rgba(255, 110, 48, .85) 70% 74%, transparent 74%),
@@ -154,7 +158,6 @@ h6,
     #090909;
   background-size: 100% 5px, 100% 42px, auto;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .08);
-  order: 2;
   animation: nothing-panel-scan 7s cubic-bezier(.42, 0, .2, 1) infinite alternate;
 }
 
@@ -173,10 +176,22 @@ h6,
   font-size: 13px;
   line-height: 1.55;
   background: #0b0b0b;
-  animation: nothing-float 5.5s ease-in-out infinite;
+  display: none;
 }
 
-#root > .min-h-screen > section:first-of-type .container > div,
+#root > .min-h-screen > section:first-of-type .container > div:first-child {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(16px, 2.8svh, 30px);
+  width: min(980px, 72vw);
+  max-width: none !important;
+  min-height: calc(94svh - 220px);
+  margin-left: clamp(18px, 3.5vw, 56px);
+  text-align: left !important;
+}
+
 #root > .min-h-screen > section:first-of-type h1,
 #root > .min-h-screen > section:first-of-type p {
   max-width: 640px;
@@ -184,6 +199,7 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type span.inline-block {
+  align-self: flex-start;
   border-radius: 6px !important;
   border-color: rgba(255, 110, 48, .55) !important;
   background: rgba(255, 110, 48, .12) !important;
@@ -193,8 +209,10 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type h1 {
-  margin-bottom: 20px !important;
+  max-width: none !important;
+  margin-bottom: 0 !important;
   color: #fff !important;
+  font-size: clamp(4.4rem, 6.15vw, 7.35rem) !important;
   font-weight: 900 !important;
   line-height: .96 !important;
   text-shadow: 0 0 18px rgba(255, 255, 255, .12);
@@ -210,7 +228,12 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type p {
+  max-width: min(780px, 68vw);
   color: rgba(255, 255, 255, .6) !important;
+}
+
+#root > .min-h-screen > section:first-of-type .container > div:first-child > .flex {
+  align-self: flex-start;
 }
 
 #root > .min-h-screen > section:first-of-type .rounded-full {
@@ -432,18 +455,84 @@ h6,
 
 @media (max-width: 900px) {
   #root > .min-h-screen > section:first-of-type > .container {
+    display: grid;
     grid-template-columns: 1fr;
     padding-top: 56px;
     text-align: left !important;
   }
 
+  #root > .min-h-screen > section:first-of-type .container > div:first-child {
+    display: block !important;
+    min-height: 0;
+  }
+
   #root > .min-h-screen > section:first-of-type > .container::before {
+    position: static;
     order: 3;
     min-height: 260px;
+    width: auto;
+    margin-top: 28px;
     font-size: 13px;
   }
 
   #root > .min-h-screen > section:first-of-type > .container::after {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 700px) {
+  #root > .min-h-screen > section:first-of-type {
+    min-height: 100svh;
+  }
+
+  #root > .min-h-screen > section:first-of-type::before {
+    inset: 84px max(24px, calc((100vw - 1500px) / 2)) 24px;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container {
+    min-height: calc(100svh - 64px);
+    padding-top: 92px;
+    padding-bottom: 32px;
+  }
+
+  #root > .min-h-screen > section:first-of-type .container > div:first-child {
+    justify-content: flex-start;
+    gap: 14px;
+    width: min(1120px, 76vw);
+    min-height: 0;
+    margin-left: clamp(18px, 3vw, 48px);
+  }
+
+  #root > .min-h-screen > section:first-of-type h1 {
+    font-size: clamp(4rem, 5vw, 5.8rem) !important;
+    line-height: .9 !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type p {
+    max-width: min(780px, 70vw);
+    font-size: clamp(15px, 1.25vw, 20px) !important;
+    line-height: 1.48 !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container::before {
+    bottom: 18px;
+    width: min(560px, 44vw);
+    padding: 12px 16px;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 560px) {
+  #root > .min-h-screen > section:first-of-type .container > div:first-child {
+    gap: 10px;
+  }
+
+  #root > .min-h-screen > section:first-of-type h1 {
+    font-size: clamp(3.35rem, 4.6vw, 4.75rem) !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container::before {
     display: none;
   }
 }

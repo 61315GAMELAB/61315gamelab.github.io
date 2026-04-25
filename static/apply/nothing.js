@@ -35,12 +35,12 @@
       target.style.filter = "none";
       target.animate(
         [
-          { opacity: 1, transform: "translateY(34px) scale(.985)", filter: "blur(12px)" },
+          { opacity: 0.72, transform: "translateY(18px) scale(.992)", filter: "blur(2px)" },
           { opacity: 1, transform: "translateY(0) scale(1)", filter: "blur(0)" },
         ],
         {
-          duration: 980,
-          delay: 90 + index * 115,
+          duration: 720,
+          delay: 60 + index * 85,
           easing: "cubic-bezier(.16, 1, .3, 1)",
           fill: "both",
         },
@@ -55,12 +55,12 @@
       target.style.setProperty("opacity", "1", "important");
       target.animate(
         [
-          { opacity: 1, transform: "translateY(26px) scale(.99)", filter: "blur(10px)" },
+          { opacity: 0.74, transform: "translateY(14px) scale(.995)", filter: "blur(1.5px)" },
           { opacity: 1, transform: "translateY(0) scale(1)", filter: "blur(0)" },
         ],
         {
-          duration: reduceMotion ? 1 : 760,
-          delay: reduceMotion ? 0 : Math.min(index * 55, 420),
+          duration: reduceMotion ? 1 : 560,
+          delay: reduceMotion ? 0 : Math.min(index * 42, 260),
           easing: "cubic-bezier(.16, 1, .3, 1)",
           fill: "both",
         },
@@ -70,7 +70,7 @@
         target.style.setProperty("opacity", "1", "important");
         target.style.setProperty("transform", "none", "important");
         target.style.setProperty("filter", "none", "important");
-      }, reduceMotion ? 0 : 820 + Math.min(index * 55, 420));
+      }, reduceMotion ? 0 : 620 + Math.min(index * 42, 260));
     });
   }
 
