@@ -495,7 +495,14 @@ h6,
 #root section#qa [role="button"]:focus-visible,
 #root section#qa [data-radix-collection-item]:focus-visible {
   outline: none !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 113, 51, .5) !important;
+  box-shadow: none !important;
+}
+
+#root section#qa [data-state][class*="rounded-xl"]:has(button:focus-visible),
+#root section#qa [data-state][class*="rounded-xl"]:has([role="button"]:focus-visible),
+#root section#qa [data-state][class*="rounded-xl"]:has([data-radix-collection-item]:focus-visible) {
+  border-color: rgba(255, 113, 51, .72) !important;
+  box-shadow: 0 0 0 1px rgba(255, 113, 51, .72) !important;
 }
 
 #root [role="tablist"],

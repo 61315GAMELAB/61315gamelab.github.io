@@ -255,6 +255,46 @@
     );
   }
 
+  function insertBreakAfterText(paragraph, marker) {
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+
+    while (node) {
+      const index = node.nodeValue.indexOf(marker);
+      if (index !== -1) {
+        const before = node.nodeValue.slice(0, index + marker.length);
+        const after = node.nodeValue.slice(index + marker.length).replace(/^\s+/, "");
+        const br = document.createElement("br");
+
+        node.nodeValue = before;
+        node.parentNode.insertBefore(br, node.nextSibling);
+        node.parentNode.insertBefore(document.createTextNode(after), br.nextSibling);
+        return;
+      }
+
+      node = walker.nextNode();
+    }
+  }
+
+  function setupAboutLineBreaks() {
+    const paragraphs = Array.from(document.querySelectorAll("#root p"));
+
+    paragraphs.forEach((paragraph) => {
+      if (paragraph.dataset.nothingLineBreaks === "true") return;
+
+      const text = paragraph.textContent || "";
+      if (text.includes("성균관대학교 영상학과") && text.includes("현재는 학생과 직장인")) {
+        insertBreakAfterText(paragraph, "성장했습니다.");
+        paragraph.dataset.nothingLineBreaks = "true";
+      }
+
+      if (text.includes("좋은 게임을 만들고") && text.includes("CDO2: Chief Dungeon Officer")) {
+        insertBreakAfterText(paragraph, "목표입니다.");
+        paragraph.dataset.nothingLineBreaks = "true";
+      }
+    });
+  }
+
   waitForApp(() => {
     const hero = document.querySelector("#root > .min-h-screen > section:first-of-type");
     if (!hero) return;
@@ -270,5 +310,6 @@
     window.setTimeout(() => releaseFramerInlineState(document), 1200);
     setupScrollReveals();
     setupSectionSnap();
+    setupAboutLineBreaks();
   });
 })();
