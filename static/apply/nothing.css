@@ -128,13 +128,17 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type > .container {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 2.8svh, 30px);
   position: relative;
   z-index: 3;
   max-width: min(1500px, calc(100vw - 88px));
   min-height: calc(94svh - 64px);
-  padding-top: 66px;
-  padding-bottom: 72px;
+  padding-top: clamp(88px, 10svh, 128px);
+  padding-bottom: clamp(96px, 13svh, 150px);
   text-align: left !important;
 }
 
@@ -180,16 +184,9 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type .container > div:first-child {
-  display: flex !important;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: clamp(16px, 2.8svh, 30px);
-  width: min(980px, 72vw);
+  width: auto;
   max-width: none !important;
-  min-height: calc(94svh - 220px);
-  margin-left: clamp(18px, 3.5vw, 56px);
-  text-align: left !important;
+  margin-left: 0;
 }
 
 #root > .min-h-screen > section:first-of-type h1,
@@ -199,7 +196,6 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type span.inline-block {
-  align-self: flex-start;
   border-radius: 6px !important;
   border-color: rgba(255, 110, 48, .55) !important;
   background: rgba(255, 110, 48, .12) !important;
@@ -228,12 +224,21 @@ h6,
 }
 
 #root > .min-h-screen > section:first-of-type p {
+  width: min(780px, 72vw);
   max-width: min(780px, 68vw);
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   color: rgba(255, 255, 255, .6) !important;
 }
 
 #root > .min-h-screen > section:first-of-type .container > div:first-child > .flex {
   align-self: flex-start;
+}
+
+#root > .min-h-screen > section:first-of-type > .container > .flex {
+  justify-content: flex-start !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 #root > .min-h-screen > section:first-of-type .rounded-full {
