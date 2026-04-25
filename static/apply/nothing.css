@@ -1,0 +1,469 @@
+:root,
+.light,
+.dark {
+  --background: 0 0% 3%;
+  --foreground: 0 0% 94%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 94%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 94%;
+  --primary: 0 0% 96%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 8%;
+  --secondary-foreground: 0 0% 88%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 58%;
+  --accent: 18 92% 56%;
+  --accent-foreground: 0 0% 5%;
+  --destructive: 0 78% 56%;
+  --destructive-foreground: 0 0% 96%;
+  --border: 0 0% 16%;
+  --input: 0 0% 18%;
+  --ring: 18 92% 56%;
+  --radius: .45rem;
+  --page-spotlight: 0 0% 11%;
+  --page-accent: 18 80% 18%;
+  --page-grid: 0 0% 18%;
+  --page-shadow: 0 0% 0%;
+}
+
+html {
+  color-scheme: dark !important;
+  background: #050505;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: #050505 !important;
+  background-image:
+    radial-gradient(circle at 16px 16px, rgba(255, 255, 255, .075) 1px, transparent 1.5px),
+    linear-gradient(180deg, #050505 0%, #090909 52%, #050505 100%) !important;
+  background-size: 22px 22px, auto;
+  color: #f3f3f3 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+  overflow-x: hidden;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  letter-spacing: 0 !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-display {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
+  letter-spacing: 0 !important;
+}
+
+#root [style*="opacity: 0"] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+#root nav {
+  background: rgba(5, 5, 5, .9) !important;
+  border-color: rgba(255, 255, 255, .12) !important;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+#root nav a,
+#root nav button {
+  color: rgba(255, 255, 255, .72) !important;
+  font-size: 11px !important;
+  text-transform: uppercase;
+}
+
+#root nav a:first-child {
+  color: #fff !important;
+  font-size: 14px !important;
+}
+
+#root > .min-h-screen > section:first-of-type {
+  min-height: 94svh;
+  padding-top: 64px;
+  background:
+    radial-gradient(circle at 75% 28%, rgba(255, 110, 48, .14), transparent 26rem),
+    radial-gradient(circle at 16% 72%, rgba(79, 196, 107, .12), transparent 20rem),
+    #050505 !important;
+}
+
+#root > .min-h-screen > section:first-of-type::before {
+  content: "";
+  position: absolute;
+  inset: clamp(86px, 9vw, 124px) max(18px, calc((100vw - 1180px) / 2)) clamp(46px, 7vw, 88px);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .04) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, .04) 1px, transparent 1px),
+    radial-gradient(circle at 22px 22px, rgba(255, 255, 255, .12) 1px, transparent 1.7px),
+    linear-gradient(135deg, rgba(17, 17, 17, .95), rgba(5, 5, 5, .96));
+  background-size: 25% 100%, 100% 33.33%, 16px 16px, auto;
+  box-shadow: 0 28px 120px rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(0, 0, 0, .8);
+}
+
+#root > .min-h-screen > section:first-of-type::after {
+  content: "LOCAL CORE  *  RECRUIT OS  *  2026-H2";
+  position: absolute;
+  top: clamp(106px, 11vw, 146px);
+  left: max(36px, calc((100vw - 1120px) / 2));
+  z-index: 1;
+  color: rgba(255, 255, 255, .42);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em !important;
+}
+
+#root > .min-h-screen > section:first-of-type > .container {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+  max-width: 1180px;
+  min-height: calc(94svh - 64px);
+  padding-top: 66px;
+  padding-bottom: 72px;
+  text-align: left !important;
+}
+
+#root > .min-h-screen > section:first-of-type > .container::before {
+  content: "PARTS\A PLAN    DEV     ART     QA\A 24%     31%     27%     18%\A\A PIPELINE\A TASK  >  INTERVIEW  >  MATCH\A STATUS    ACTIVE";
+  white-space: pre;
+  min-height: 360px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 10px;
+  padding: 28px;
+  color: rgba(255, 255, 255, .82);
+  font-size: clamp(13px, 1.4vw, 19px);
+  line-height: 1.7;
+  background:
+    linear-gradient(90deg, transparent 70%, rgba(255, 110, 48, .85) 70% 74%, transparent 74%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .08) 0 3px, transparent 3px 12px),
+    #090909;
+  background-size: 100% 5px, 100% 42px, auto;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .08);
+  order: 2;
+}
+
+#root > .min-h-screen > section:first-of-type > .container::after {
+  content: "APPLY WINDOW\A D-OPEN\A 2026 H2";
+  white-space: pre;
+  position: absolute;
+  right: max(38px, calc((100vw - 1110px) / 2));
+  bottom: clamp(78px, 9vw, 120px);
+  z-index: 2;
+  width: min(260px, 34vw);
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 10px;
+  padding: 18px 20px;
+  color: rgba(255, 255, 255, .88);
+  font-size: 13px;
+  line-height: 1.55;
+  background: #0b0b0b;
+}
+
+#root > .min-h-screen > section:first-of-type .container > div,
+#root > .min-h-screen > section:first-of-type h1,
+#root > .min-h-screen > section:first-of-type p {
+  max-width: 640px;
+  text-align: left !important;
+}
+
+#root > .min-h-screen > section:first-of-type span.inline-block {
+  border-radius: 6px !important;
+  border-color: rgba(255, 110, 48, .55) !important;
+  background: rgba(255, 110, 48, .12) !important;
+  color: #ff7a34 !important;
+  font-size: 11px !important;
+  letter-spacing: .08em !important;
+}
+
+#root > .min-h-screen > section:first-of-type h1 {
+  margin-bottom: 20px !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  line-height: .96 !important;
+  text-shadow: 0 0 18px rgba(255, 255, 255, .12);
+}
+
+#root > .min-h-screen > section:first-of-type h1 span:first-child {
+  color: #fff !important;
+}
+
+#root > .min-h-screen > section:first-of-type h1 span:last-child {
+  color: rgba(255, 255, 255, .62) !important;
+}
+
+#root > .min-h-screen > section:first-of-type p {
+  color: rgba(255, 255, 255, .6) !important;
+}
+
+#root > .min-h-screen > section:first-of-type .rounded-full {
+  border-radius: 2px !important;
+  background: #d71920 !important;
+  box-shadow: 0 0 16px rgba(215, 25, 32, .6);
+}
+
+#root a[class*="h-11"],
+#root button[class*="h-11"],
+#root button[type="submit"] {
+  min-height: 44px;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, .17) !important;
+  background: #f2f2f2 !important;
+  color: #050505 !important;
+  box-shadow: none !important;
+  text-transform: uppercase;
+}
+
+#root a[class*="h-11"]:hover,
+#root button[class*="h-11"]:hover,
+#root button[type="submit"]:hover {
+  background: #ff7133 !important;
+  color: #050505 !important;
+}
+
+#root a[href="#/tracks"][class*="h-11"],
+#root a[href="#/result"][class*="h-11"] {
+  background: #0b0b0b !important;
+  color: rgba(255, 255, 255, .82) !important;
+}
+
+#root section:not(:first-of-type),
+#root footer {
+  background: transparent !important;
+}
+
+#root section:not(:first-of-type) {
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+#root section:not(:first-of-type) h2 {
+  color: #fff !important;
+  font-size: clamp(1.5rem, 3.2vw, 2.6rem) !important;
+  font-weight: 800 !important;
+  text-align: left;
+}
+
+#root section:not(:first-of-type) .text-center {
+  text-align: left !important;
+}
+
+#root .text-muted-foreground,
+#root .text-foreground\/80 {
+  color: rgba(255, 255, 255, .58) !important;
+}
+
+#root .text-primary,
+#root .prose-a\:text-primary a {
+  color: #f5f5f5 !important;
+}
+
+#root .text-accent,
+#root .text-accent\/80 {
+  color: #ff7133 !important;
+}
+
+#root .bg-primary,
+#root .bg-accent {
+  background-color: #f2f2f2 !important;
+  color: #050505 !important;
+}
+
+#root .bg-secondary,
+#root .bg-secondary\/20,
+#root .bg-secondary\/30,
+#root .bg-secondary\/40,
+#root .bg-secondary\/50,
+#root .bg-primary\/5,
+#root .bg-primary\/10,
+#root .bg-accent\/5,
+#root .bg-accent\/10,
+#root .bg-accent\/40,
+#root .bg-card,
+#root .bg-card\/50,
+#root .bg-card\/60,
+#root .bg-card\/70,
+#root .bg-card\/80,
+#root .bg-card\/85,
+#root .bg-background\/70 {
+  background-color: rgba(12, 12, 12, .92) !important;
+}
+
+#root .border,
+#root .border-border,
+#root .border-border\/30,
+#root .border-border\/50,
+#root .border-primary\/20,
+#root .border-primary\/30,
+#root .border-primary\/40,
+#root .border-accent\/30,
+#root .border-accent\/40 {
+  border-color: rgba(255, 255, 255, .13) !important;
+}
+
+#root .rounded-2xl,
+#root .rounded-xl,
+#root .rounded-lg,
+#root .rounded-md {
+  border-radius: 10px !important;
+}
+
+#root section .rounded-2xl,
+#root section .rounded-xl,
+#root section .rounded-lg,
+#root form,
+#root [role="tabpanel"] > div {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04) !important;
+}
+
+#root section .grid > div[class*="rounded"],
+#root section .group,
+#root [data-orientation="vertical"] > div,
+#root form > div,
+#root .prose,
+#root [role="tabpanel"] > div {
+  background-image:
+    radial-gradient(circle at 12px 12px, rgba(255, 255, 255, .08) 1px, transparent 1.5px) !important;
+  background-size: 16px 16px !important;
+}
+
+#root svg {
+  stroke-width: 1.7;
+}
+
+#root section .lucide {
+  color: #ff7133 !important;
+}
+
+#root input,
+#root textarea,
+#root select {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, .15) !important;
+  background: #080808 !important;
+  color: #f1f1f1 !important;
+  box-shadow: none !important;
+}
+
+#root input::placeholder,
+#root textarea::placeholder {
+  color: rgba(255, 255, 255, .34) !important;
+}
+
+#root label {
+  color: rgba(255, 255, 255, .7) !important;
+  font-size: 12px !important;
+}
+
+#root [role="tablist"],
+#root [data-radix-collection-item],
+#root button[class*="px-3"] {
+  border-radius: 8px !important;
+  background: #0b0b0b !important;
+  border-color: rgba(255, 255, 255, .12) !important;
+  color: rgba(255, 255, 255, .76) !important;
+}
+
+#root [data-state="active"],
+#root [aria-selected="true"] {
+  background: #f2f2f2 !important;
+  color: #050505 !important;
+}
+
+#root footer {
+  border-color: rgba(255, 255, 255, .1) !important;
+}
+
+@media (max-width: 900px) {
+  #root > .min-h-screen > section:first-of-type > .container {
+    grid-template-columns: 1fr;
+    padding-top: 56px;
+    text-align: left !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container::before {
+    order: 3;
+    min-height: 260px;
+    font-size: 13px;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container::after {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  #root nav .container {
+    height: 58px !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type::before {
+    inset: 78px 12px 32px;
+  }
+
+  #root > .min-h-screen > section:first-of-type::after {
+    left: 28px;
+    top: 98px;
+    font-size: 10px;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container {
+    min-height: calc(94svh - 58px);
+    width: calc(100% - 56px) !important;
+    margin-left: 28px !important;
+    margin-right: 28px !important;
+    padding: 74px 0 42px !important;
+    overflow: hidden;
+  }
+
+  #root > .min-h-screen > section:first-of-type h1 {
+    font-size: clamp(2.6rem, 14vw, 4.25rem) !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type .flex-col,
+  #root > .min-h-screen > section:first-of-type a[class*="h-11"] {
+    width: min(302px, calc(100vw - 72px)) !important;
+    max-width: min(302px, calc(100vw - 72px)) !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type p {
+    width: min(302px, calc(100vw - 72px)) !important;
+    max-width: min(302px, calc(100vw - 72px)) !important;
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type .flex-col {
+    align-items: stretch !important;
+  }
+
+  #root > .min-h-screen > section:first-of-type > .container::before {
+    content: "PARTS\A PLAN 24%   DEV 31%\A ART  27%   QA  18%\A\A PIPELINE\A TASK > VIEW > MATCH\A STATUS  ACTIVE";
+    width: 100%;
+    min-width: 0;
+    min-height: 246px;
+    padding: 28px 22px;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.75;
+  }
+
+  #root > .min-h-screen > section:first-of-type a[class*="h-11"] {
+    min-width: 0 !important;
+  }
+
+  #root section:not(:first-of-type) {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+  }
+}
