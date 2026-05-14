@@ -523,8 +523,9 @@ h6,
   color: rgba(255, 255, 255, .76) !important;
 }
 
-#root [data-state="active"],
-#root [aria-selected="true"] {
+#root [role="tab"][data-state="active"],
+#root [data-radix-collection-item][data-state="active"],
+#root button[aria-selected="true"] {
   background: #f2f2f2 !important;
   color: #050505 !important;
 }

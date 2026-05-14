@@ -1,0 +1,197 @@
+# Supabase security audit for public GitHub Pages apply app
+
+Audit date: 2026-05-15 KST
+
+## Scope
+
+- Public page: `https://61315gamelab.github.io/apply/`
+- Local bundle: `static/apply/assets/index-CNfEBzHN.js`
+- Supabase project ref observed in bundle: `nevoggtlsbqrjwdwdwcb`
+- Checks performed: static secret scan, live GitHub Pages asset check, anon REST access probes, non-destructive Edge Function auth probes, Supabase current docs/changelog review.
+
+## Executive summary
+
+No `service_role`, `sb_secret_*`, database URL, or backend secret was found in the current tracked repository scan. The exposed JWT in the bundle is a legacy `anon` key, not a service-role key.
+
+The app is still security-sensitive because the public bundle exposes the Supabase project URL, anon key, admin routes, admin/content Edge Function endpoints, and admin action names. The practical security boundary is therefore entirely server-side: RLS policies, Storage policies, and Edge Function password/auth checks must be correct. GitHub Pages cannot protect these routes.
+
+## Findings
+
+### High: Admin and content management APIs are discoverable from the public bundle
+
+Evidence:
+
+- Public GitHub Pages serves `./assets/index-CNfEBzHN.js`.
+- The bundle includes routes `/61315admin` and `/61315content`.
+- The bundle calls:
+  - `/functions/v1/admin-api`
+  - `/functions/v1/content-api`
+  - `/functions/v1/check-result`
+  - `/functions/v1/submit-application`
+- Client-visible admin actions include `list_applications`, `update_application`, `delete_application`, `add_evaluation`, `delete_evaluation`, `create_season`, `delete_season`, `update_application_settings`, `regenerate_slots`, `upsert_post`, `delete_post`, and `upload_assets`.
+
+Observed mitigation:
+
+- `admin-api` with an empty `x-admin-password` returned `401`.
+- `content-api` with an empty `x-admin-password` returned `401`.
+
+Risk:
+
+- A single shared admin password header is a weak boundary for public recruitment/admin functions.
+- If the password is weak, reused, leaked, logged, or brute-forceable, all admin actions are callable directly without the UI.
+
+Recommended fix:
+
+- Move admin/content management behind Supabase Auth or another real identity provider with role checks.
+- Rate-limit and audit all admin/content Edge Function calls.
+- Treat `x-admin-password` as temporary only; rotate it now if it has been used from browsers or shared broadly.
+- Do not ship admin routes in the public recruitment bundle. Use a separate admin app behind access control.
+
+### Medium: Public anon read access exists for recruitment configuration tables
+
+Anon REST probes:
+
+- `admission_tracks`: `206`, count `2`
+- `application_settings`: `200`, count `1`
+- `interview_slots`: `206`, count `18`
+- `applications`: `200`, count `0`
+- `interview_evaluations`: `200`, count `0`
+- `portfolios`: `404`
+- `seasons`: `404`
+
+Samples fetched from publicly readable tables showed non-PII configuration fields for tracks, application settings, and interview slots. This looks intentional for the public form, but it must be enforced by explicit RLS policies rather than accidental table exposure.
+
+Recommended fix:
+
+- Confirm RLS is enabled on every exposed `public` table.
+- Public `anon` policies should be read-only and column-minimal for only:
+  - `admission_tracks`
+  - `application_settings`
+  - `interview_slots`
+- `applications` and `interview_evaluations` should not have broad anon SELECT/UPDATE/DELETE policies. If public submission is needed, perform inserts only through `submit-application` with server-side validation.
+
+### Medium: Legacy JWT anon key is committed and public
+
+Evidence:
+
+- Bundle JWT payload decodes to role `anon`, project ref `nevoggtlsbqrjwdwdwcb`.
+- Supabase current docs classify `anon` as the legacy version of publishable keys and recommend `sb_publishable_*` for new clients.
+
+Risk:
+
+- The anon key itself is expected to be public, but legacy JWT keys are tied to the project JWT secret and are harder to rotate without broader impact.
+
+Recommended fix:
+
+- Migrate browser code to a Supabase `sb_publishable_*` key where compatible.
+- Keep Edge Functions that rely on JWT verification on legacy anon only if necessary, and implement explicit request validation inside functions.
+
+### Medium: Portfolio upload path is client-created before application submission
+
+Evidence:
+
+- Public form uploads directly to Storage bucket `portfolios`.
+- Filename is generated client-side from timestamp plus random suffix.
+- Then `submit-application` receives the uploaded file path.
+
+Risk:
+
+- If Storage policies are too broad, attackers can upload arbitrary files.
+- If submission fails after upload, orphaned files can remain.
+- File type/content validation cannot be trusted if only done client-side.
+
+Recommended fix:
+
+- Restrict Storage policies to insert-only for anonymous public uploads, never list/read/update/delete.
+- Enforce server-side size, extension, MIME, and path-prefix validation.
+- Consider signed upload URLs generated by an Edge Function instead of direct public bucket uploads.
+- Add cleanup for orphaned uploads.
+
+### Low: Result-check endpoint may allow enumeration
+
+Evidence:
+
+- `/functions/v1/check-result` accepts `name` plus `phone_last4`.
+- A dummy probe returned `404`.
+
+Risk:
+
+- Name plus last-four-phone is low entropy and can be enumerated if not rate-limited.
+
+Recommended fix:
+
+- Add rate limiting and generic responses.
+- Prefer a per-applicant random lookup token, emailed or shown after submission.
+
+## Immediate action checklist
+
+1. Rotate the admin/content password and check Edge Function logs for failed `admin-api` / `content-api` attempts.
+2. Add rate limiting to `admin-api`, `content-api`, `check-result`, and `submit-application`.
+3. In Supabase Dashboard, run Security Advisor and verify no exposed table lacks RLS.
+4. Review policies for `applications`, `interview_evaluations`, `storage.objects`, and any views/functions used by Edge Functions.
+5. Split admin UI out of the public GitHub Pages bundle or protect it with real auth.
+6. Migrate public frontend from legacy `anon` JWT to `sb_publishable_*` where compatible.
+
+## Security Advisor results
+
+Command run:
+
+```bash
+supabase db advisors --linked --type security -o json
+```
+
+Initial result: 5 security warnings, 0 errors.
+
+1. `public_bucket_allows_listing`: public Storage bucket `portfolios` has a broad SELECT policy on `storage.objects` named `Public read portfolios`, allowing clients to list all files.
+2. `anon_security_definer_function_executable`: `anon` can execute `public.reserve_slot(p_slot_id uuid)` as a `SECURITY DEFINER` function through `/rest/v1/rpc/reserve_slot`.
+3. `anon_security_definer_function_executable`: `anon` can execute `public.unreserve_slot(p_slot_id uuid)` as a `SECURITY DEFINER` function through `/rest/v1/rpc/unreserve_slot`.
+4. `authenticated_security_definer_function_executable`: signed-in users can execute `public.reserve_slot(p_slot_id uuid)` as a `SECURITY DEFINER` function.
+5. `authenticated_security_definer_function_executable`: signed-in users can execute `public.unreserve_slot(p_slot_id uuid)` as a `SECURITY DEFINER` function.
+
+Recommended fix order:
+
+1. Fix `portfolios` Storage listing first: remove broad `SELECT` from `storage.objects`; public object access does not require list access.
+2. Revoke direct `EXECUTE` on `reserve_slot` and `unreserve_slot` from `anon` and `authenticated`, or make them `SECURITY INVOKER` if they must stay callable.
+3. If slot reservation still needs public access, route it through `submit-application` or another Edge Function that validates input, rate-limits calls, and uses service credentials server-side.
+
+## Remediation applied
+
+Migration:
+
+```text
+supabase/migrations/20260514152518_fix_security_advisor_warnings.sql
+```
+
+Applied changes:
+
+1. Dropped the broad Storage `SELECT` policy named `Public read portfolios` from `storage.objects`.
+2. Revoked direct `EXECUTE` on `public.reserve_slot(uuid)` from `public`, `anon`, and `authenticated`.
+3. Revoked direct `EXECUTE` on `public.unreserve_slot(uuid)` from `public`, `anon`, and `authenticated`.
+4. Granted `EXECUTE` on both slot functions only to `service_role`.
+
+Post-fix Security Advisor result:
+
+- `WARN`: 0
+- `ERROR`: 0
+- Remaining `INFO`: `public.applicants` and `public.interview_evaluations` have RLS enabled with no policies. This is informational and means those tables are not directly accessible through RLS policies.
+
+Post-fix permission checks:
+
+- `anon` can no longer execute `reserve_slot` or `unreserve_slot`.
+- `authenticated` can no longer execute `reserve_slot` or `unreserve_slot`.
+- `service_role` can still execute both functions for server-side Edge Function use.
+- Storage policy review shows only `Anyone can upload portfolios` remains for the `portfolios` bucket, with `INSERT` only.
+- An anonymous RPC probe to `/rest/v1/rpc/reserve_slot` now returns `401 permission denied for function reserve_slot`.
+
+## Verification notes
+
+- `service_role` / `sb_secret_*` not found in current tracked files.
+- Supabase CLI `2.98.2` is installed locally and Security Advisor was run against the linked project.
+- Supabase CLI link state under `supabase/.temp/` is local cache and is gitignored.
+- No destructive probes were run. No application rows were inserted, updated, or deleted.
+
+## Reference
+
+- Supabase API keys: https://supabase.com/docs/guides/api/api-keys
+- Supabase Row Level Security: https://supabase.com/docs/guides/database/postgres/row-level-security
+- Supabase product security index: https://supabase.com/docs/guides/security/product-security
