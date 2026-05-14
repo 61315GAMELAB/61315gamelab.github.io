@@ -219,15 +219,6 @@
     if (!hero) return;
 
     createDotField(hero);
-    animateIn([
-      hero.querySelector("h1"),
-      hero.querySelector("p"),
-      hero.querySelector(".flex"),
-    ].filter(Boolean));
-    releaseFramerInlineState(hero);
-    window.setTimeout(() => releaseFramerInlineState(document), 350);
-    window.setTimeout(() => releaseFramerInlineState(document), 1200);
-    setupScrollReveals();
     setupAboutLineBreaks();
   });
 })();
