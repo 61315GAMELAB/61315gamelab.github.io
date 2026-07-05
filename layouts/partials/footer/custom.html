@@ -106,6 +106,10 @@
     var modal = document.getElementById("apply-modal");
     if (!modal) return;
 
+    // 2026-08-08 이후부터 노출
+    var START = new Date(2026, 7, 8, 0, 0, 0).getTime();
+    if (Date.now() < START) return;
+
     var dismissedUntil = parseInt(localStorage.getItem(KEY) || "0", 10);
     if (dismissedUntil && Date.now() < dismissedUntil) return;
 
