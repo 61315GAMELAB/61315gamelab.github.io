@@ -17,13 +17,8 @@ image = "KakaoTalk_Photo_2026-05-26-15-03-46.jpeg"
 올해는 61315 GAMELAB의 미미게임즈 팀도 전시에 참여했기에 훨씬 더 뜻깊은 전시였습니다!
 
 ![](KakaoTalk_Photo_2026-05-26-15-03-57.jpeg)
-
 ![](KakaoTalk_Photo_2026-05-26-15-03-37_005.jpeg)
-
 ![](KakaoTalk_Photo_2026-05-26-15-03-37_004.jpeg)
-
 ![](KakaoTalk_Photo_2026-05-26-15-03-37_003.jpeg)
-
 ![](KakaoTalk_Photo_2026-05-26-15-03-36_002.jpeg)
-
 ![](KakaoTalk_Photo_2026-05-26-15-03-36_001.jpeg)

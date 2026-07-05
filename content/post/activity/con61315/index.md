@@ -13,13 +13,9 @@ image = "KakaoTalk_Photo_2026-07-05-19-57-52.jpeg"
 +++
 
 ![](KakaoTalk_Photo_2026-07-05-19-57-52.jpeg)
-
 ![](KakaoTalk_Photo_2026-07-05-19-57-16.jpeg)
-
 ![](KakaoTalk_Photo_2026-07-05-19-56-36_003.jpeg)
-
 ![](KakaoTalk_Photo_2026-07-05-19-56-36_002.jpeg)
-
 ![](KakaoTalk_Photo_2026-07-05-19-56-35_001.jpeg)
 
 유니티 코리아 사옥에서 61315 GAMELAB에서 최초로 진행된 미니 컨퍼런스 CON:61315를 진행하였습니다.
