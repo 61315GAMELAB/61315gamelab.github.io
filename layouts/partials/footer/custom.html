@@ -1,13 +1,16 @@
 {{ if .IsHome }}
-<div id="apply-modal" class="apply-modal" aria-hidden="true">
+{{ with .Site.Params.applyModal }}
+{{ if .enabled }}
+<div id="apply-modal" class="apply-modal" aria-hidden="true"
+     data-start="{{ .startDate }}" data-end="{{ .endDate }}">
   <div class="apply-modal__backdrop" data-apply-close></div>
   <div class="apply-modal__dialog" role="dialog" aria-modal="true" aria-label="61315 GAMELAB 지원 안내">
     <button type="button" class="apply-modal__close" data-apply-close aria-label="닫기">&times;</button>
-    <a class="apply-modal__link" href="{{ "/apply/" | relURL }}">
-      <img src="{{ "img/apply-promo.png" | relURL }}" alt="61315 GAMELAB 지원하기 (~8/24)" />
+    <a class="apply-modal__link" href="{{ .link | relURL }}">
+      <img src="{{ .image | relURL }}" alt="{{ .alt }}" />
     </a>
     <div class="apply-modal__actions">
-      <a class="apply-modal__cta" href="{{ "/apply/" | relURL }}">지금 지원하기 &rarr;</a>
+      <a class="apply-modal__cta" href="{{ .link | relURL }}">{{ .ctaText }}</a>
       <button type="button" class="apply-modal__dismiss" data-apply-dismiss>오늘 하루 보지 않기</button>
     </div>
   </div>
@@ -106,12 +109,24 @@
     var modal = document.getElementById("apply-modal");
     if (!modal) return;
 
-    // 2026-08-08 이후부터 노출
-    var START = new Date(2026, 7, 8, 0, 0, 0).getTime();
-    if (Date.now() < START) return;
+    // "YYYY-MM-DD" → 로컬 자정 timestamp. 빈 값이면 null.
+    function parseDate(s) {
+      if (!s) return null;
+      var p = s.split("-");
+      if (p.length !== 3) return null;
+      return new Date(+p[0], +p[1] - 1, +p[2], 0, 0, 0).getTime();
+    }
+
+    var now = Date.now();
+    var start = parseDate(modal.getAttribute("data-start"));
+    var end = parseDate(modal.getAttribute("data-end"));
+    // 시작일 이전이면 노출 안 함
+    if (start !== null && now < start) return;
+    // 종료일은 그날 하루 포함(자정까지) → +1일
+    if (end !== null && now >= end + 24 * 60 * 60 * 1000) return;
 
     var dismissedUntil = parseInt(localStorage.getItem(KEY) || "0", 10);
-    if (dismissedUntil && Date.now() < dismissedUntil) return;
+    if (dismissedUntil && now < dismissedUntil) return;
 
     function open() { modal.classList.add("is-open"); modal.setAttribute("aria-hidden", "false"); }
     function close() { modal.classList.remove("is-open"); modal.setAttribute("aria-hidden", "true"); }
@@ -133,4 +148,6 @@
     open();
   })();
 </script>
+{{ end }}
+{{ end }}
 {{ end }}
