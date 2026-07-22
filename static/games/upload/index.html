@@ -35,6 +35,9 @@
   .done .big { font-size: 40px; }
   .done h2 { font-size: 18px; margin: 10px 0 6px; }
   .done a.play { display: inline-block; margin-top: 14px; background: #27ae60; color: #fff; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { background: #eef1f4; color: #34495e; padding: 6px 12px; font-size: 12px; border-radius: 999px; }
+  .chips button:hover { background: #e0e6ec; }
 </style>
 </head>
 <body>
@@ -49,8 +52,8 @@
         <input type="text" id="f-title" maxlength="100">
       </div>
       <div>
-        <label>slug (URL용, 소문자·숫자·하이픈) *</label>
-        <input type="text" id="f-slug" maxlength="50" placeholder="my-game">
+        <label>게임 주소 (선택)</label>
+        <input type="text" id="f-slug" maxlength="50" placeholder="비워두면 자동으로 만들어져요">
       </div>
     </div>
 
@@ -84,7 +87,11 @@
     <div style="margin-top:18px">
       <button class="btn-primary" id="btn-save">업로드</button>
     </div>
-    <p class="hint">같은 브라우저에서 같은 slug로 다시 올리면 내 게임의 빌드가 교체됩니다.</p>
+    <p class="hint">같은 브라우저에서 같은 주소로 다시 올리면 내 게임의 빌드가 교체됩니다.</p>
+    <div id="my-games" style="display:none">
+      <label>내가 올린 게임 (누르면 주소가 채워져요)</label>
+      <div id="my-games-list"></div>
+    </div>
   </div>
 
   <div class="card done" id="view-done" style="display:none">
@@ -110,6 +117,13 @@ function saveToken(slug, token) {
   const m = tokenMap()
   m[slug] = token
   localStorage.setItem('games_upload_tokens', JSON.stringify(m))
+}
+
+// 제목에서 영문/숫자만 추려 주소를 만들고, 겹치지 않게 랜덤 꼬리를 붙인다
+function autoSlug(title) {
+  const base = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30)
+  const tail = Math.random().toString(36).slice(2, 6)
+  return (base ? base + '-' : 'game-') + tail
 }
 
 async function api(action, payload = {}) {
@@ -225,7 +239,7 @@ async function save() {
   const errEl = $('form-error')
   errEl.textContent = ''
   const title = $('f-title').value.trim()
-  const slug = $('f-slug').value.trim()
+  let slug = $('f-slug').value.trim().toLowerCase()
   const description = $('f-desc').value.trim()
   const width = parseInt($('f-width').value, 10) || 960
   const height = parseInt($('f-height').value, 10) || 600
@@ -233,7 +247,8 @@ async function save() {
   const coverFile = $('f-cover').files[0]
 
   if (!title) { errEl.textContent = '제목을 입력해주세요.'; return }
-  if (!/^[a-z0-9][a-z0-9-]{0,49}$/.test(slug)) { errEl.textContent = 'slug는 소문자/숫자/하이픈만 사용할 수 있습니다.'; return }
+  if (slug && !/^[a-z0-9][a-z0-9-]{0,49}$/.test(slug)) { errEl.textContent = '게임 주소는 영문 소문자, 숫자, 하이픈(-)만 쓸 수 있어요.'; return }
+  if (!slug) slug = autoSlug(title)
   if (!zipFile) { errEl.textContent = '게임 빌드 zip을 선택해주세요.'; return }
 
   $('btn-save').disabled = true
@@ -275,7 +290,7 @@ async function save() {
 
     $('view-form').style.display = 'none'
     $('view-done').style.display = 'block'
-    $('done-msg').textContent = isReupload ? `"${title}" 빌드를 교체했습니다.` : `"${title}" 게임이 공개되었습니다.`
+    $('done-msg').textContent = (isReupload ? `"${title}" 빌드를 교체했습니다.` : `"${title}" 게임이 공개되었습니다.`) + ` (주소: ${slug})`
     $('done-link').href = '/games/#play=' + slug
   } catch (e) {
     errEl.textContent = e.message
@@ -285,6 +300,22 @@ async function save() {
 }
 
 $('btn-save').addEventListener('click', save)
+
+// 이 브라우저에서 올렸던 게임 목록 → 누르면 주소 칸이 채워져 재업로드(교체)로 이어진다
+function renderMyGames() {
+  const slugs = Object.keys(tokenMap())
+  if (slugs.length === 0) return
+  $('my-games').style.display = 'block'
+  $('my-games-list').className = 'chips'
+  $('my-games-list').innerHTML = slugs.map(s =>
+    `<button type="button" data-slug="${s.replace(/[^a-z0-9-]/g, '')}">${s.replace(/[^a-z0-9-]/g, '')}</button>`
+  ).join('')
+}
+$('my-games-list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-slug]')
+  if (b) { $('f-slug').value = b.dataset.slug; $('f-slug').scrollIntoView({ behavior: 'smooth', block: 'center' }) }
+})
+renderMyGames()
 </script>
 </body>
 </html>
