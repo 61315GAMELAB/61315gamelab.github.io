@@ -92,6 +92,20 @@ function respond(data: unknown, status = 200) {
   })
 }
 
+// 비밀번호를 상수 시간에 비교해 타이밍 사이드채널을 막는다.
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder()
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ])
+  const va = new Uint8Array(ha)
+  const vb = new Uint8Array(hb)
+  let diff = 0
+  for (let i = 0; i < va.length; i++) diff |= va[i] ^ vb[i]
+  return diff === 0
+}
+
 function requireGithubToken() {
   if (!GITHUB_TOKEN) {
     throw new Error('Supabase secret GITHUB_CONTENT_TOKEN is not configured.')
@@ -457,7 +471,7 @@ Deno.serve(async (req) => {
   if (!ADMIN_PASSWORD) {
     return respond({ error: '관리자 비밀번호가 설정되지 않았습니다.' }, 500)
   }
-  if (password !== ADMIN_PASSWORD) {
+  if (!(await timingSafeEqual(password || '', ADMIN_PASSWORD))) {
     return respond({ error: '관리자 인증 실패' }, 401)
   }
 

@@ -313,7 +313,7 @@ async function save() {
       cover_path = await uploadCover(slug, token, coverFile)
     }
 
-    await api('finish_upload', { slug, token, title, description, width, height, cover_path })
+    await api('finish_upload', { slug, token, title, description, width, height, cover_path, staff_name: staffName || undefined })
 
     $('view-form').style.display = 'none'
     $('view-done').style.display = 'block'

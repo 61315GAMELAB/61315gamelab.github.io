@@ -42,12 +42,36 @@ function respond(data: unknown, status = 200) {
   })
 }
 
+function isIpish(s: string): boolean {
+  return /^[0-9a-fA-F:.]{3,45}$/.test(s)
+}
+
+// Supabase 게이트웨이가 채워주는 x-forwarded-for의 첫 항목만 신뢰한다.
+// x-real-ip는 클라이언트가 임의로 넣어 차단/한도를 우회할 수 있으므로 기본 신뢰하지 않고,
+// x-forwarded-for가 아예 없을 때만 보조로 사용한다.
 function clientIp(req: Request): string {
-  return (
-    req.headers.get('x-real-ip') ||
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    'unknown'
-  )
+  const xff = req.headers.get('x-forwarded-for')
+  if (xff) {
+    const first = xff.split(',')[0].trim()
+    if (isIpish(first)) return first
+  }
+  const real = req.headers.get('x-real-ip')?.trim()
+  if (real && isIpish(real)) return real
+  return 'unknown'
+}
+
+// 비밀번호를 상수 시간에 비교해 타이밍 사이드채널을 막는다.
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder()
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(a)),
+    crypto.subtle.digest('SHA-256', enc.encode(b)),
+  ])
+  const va = new Uint8Array(ha)
+  const vb = new Uint8Array(hb)
+  let diff = 0
+  for (let i = 0; i < va.length; i++) diff |= va[i] ^ vb[i]
+  return diff === 0
 }
 
 function isSafePath(p: string): boolean {
@@ -126,7 +150,7 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  const isAdmin = !!ADMIN_PASSWORD && req.headers.get('x-admin-password') === ADMIN_PASSWORD
+  const isAdmin = !!ADMIN_PASSWORD && await timingSafeEqual(req.headers.get('x-admin-password') || '', ADMIN_PASSWORD)
 
   // Fetch a game by slug and verify the caller owns it via upload_token
   async function requireOwner(slug: unknown, token: unknown) {
@@ -246,6 +270,29 @@ Deno.serve(async (req) => {
         const { slug, token, title, description, width, height, cover_path } = body
         const game = await requireOwner(slug, token)
         if (!game) return respond({ error: '권한이 없습니다. (slug/토큰 불일치)' }, 403)
+
+        // 신고값(bytes)이 아니라 R2에 실제로 올라간 크기로 한도·게이트를 다시 검증한다.
+        // (sign_uploads의 검사는 클라이언트가 보낸 bytes에 의존하므로 우회될 수 있다.)
+        const objects = await listObjects('')
+        const bucketUsed = objects.reduce((sum, o) => sum + o.size, 0)
+        if (bucketUsed > MAX_BUCKET_BYTES) {
+          return respond({
+            error: `저장 용량 한도(10GB)를 초과했습니다. 현재 ${(bucketUsed / 1e9).toFixed(2)}GB 사용 중입니다.`,
+          }, 400)
+        }
+        const gameKeys = objects.filter((o) => o.key.startsWith(`${slug}/`))
+        const gameUsed = gameKeys.reduce((sum, o) => sum + o.size, 0)
+        if (gameUsed > BIG_GAME_BYTES) {
+          const answer = typeof body.staff_name === 'string' ? body.staff_name.replace(/\s+/g, '') : ''
+          if (STAFF_NAMES.length === 0 || !STAFF_NAMES.includes(answer)) {
+            // 게이트를 통과하지 못한 대용량 업로드는 공개하지 않고 파일을 되돌린다.
+            await deleteKeys(gameKeys.map((o) => o.key))
+            return respond({
+              error: STAFF_NAMES.length === 0 ? '500MB가 넘는 게임 업로드는 현재 비활성화되어 있습니다.' : 'STAFF_CHECK_FAILED',
+            }, 403)
+          }
+        }
+
         const updates: Record<string, unknown> = { published: true, updated_at: new Date().toISOString() }
         if (typeof title === 'string' && title) updates.title = title
         if (typeof description === 'string') updates.description = description
