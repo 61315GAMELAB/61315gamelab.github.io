@@ -46,8 +46,15 @@ async function presignPut(key: string, expiresSeconds = 3600): Promise<string> {
   return signed.url
 }
 
-async function listKeys(prefix: string): Promise<string[]> {
-  const keys: string[] = []
+// Hard cap so the bucket stays inside R2's 10GB free tier
+const MAX_BUCKET_BYTES = 10 * 1000 ** 3
+
+function unescapeXml(s: string): string {
+  return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+}
+
+async function listObjects(prefix: string): Promise<{ key: string; size: number }[]> {
+  const objects: { key: string; size: number }[] = []
   let token: string | undefined
   do {
     const url = new URL(`${R2_ENDPOINT}/${R2_BUCKET}`)
@@ -57,12 +64,22 @@ async function listKeys(prefix: string): Promise<string[]> {
     const res = await r2.fetch(url.toString())
     if (!res.ok) throw new Error(`R2 list failed (${res.status})`)
     const xml = await res.text()
-    for (const m of xml.matchAll(/<Key>([^<]+)<\/Key>/g)) {
-      keys.push(m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'"))
+    for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+      const key = m[1].match(/<Key>([^<]+)<\/Key>/)?.[1]
+      const size = m[1].match(/<Size>(\d+)<\/Size>/)?.[1]
+      if (key) objects.push({ key: unescapeXml(key), size: Number(size || 0) })
     }
     token = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)?.[1]
   } while (token)
-  return keys
+  return objects
+}
+
+async function listKeys(prefix: string): Promise<string[]> {
+  return (await listObjects(prefix)).map((o) => o.key)
+}
+
+async function bucketUsage(): Promise<number> {
+  return (await listObjects('')).reduce((sum, o) => sum + o.size, 0)
 }
 
 async function deleteKeys(keys: string[]): Promise<void> {
@@ -156,12 +173,24 @@ Deno.serve(async (req) => {
         return respond({ success: true, removed: keys.length })
       }
 
+      case 'bucket_usage': {
+        const used = await bucketUsage()
+        return respond({ used, limit: MAX_BUCKET_BYTES })
+      }
+
       // Issue presigned R2 PUT URLs so the browser uploads directly
       case 'sign_uploads': {
-        const { slug, paths } = body
+        const { slug, paths, bytes } = body
         if (!slug || !SLUG_RE.test(slug)) return respond({ error: '잘못된 slug입니다.' }, 400)
         if (!Array.isArray(paths) || paths.length === 0 || paths.length > 100) {
           return respond({ error: '경로는 1~100개씩 요청해주세요.' }, 400)
+        }
+        const used = await bucketUsage()
+        const incoming = typeof bytes === 'number' && bytes > 0 ? bytes : 0
+        if (used + incoming > MAX_BUCKET_BYTES) {
+          return respond({
+            error: `저장 용량 한도(10GB)를 초과합니다. 현재 ${(used / 1e9).toFixed(2)}GB 사용 중 — 기존 게임을 삭제한 뒤 다시 시도해주세요.`,
+          }, 400)
         }
         const signed = []
         for (const p of paths) {
@@ -176,6 +205,9 @@ Deno.serve(async (req) => {
         const { slug, ext } = body
         if (!slug || !SLUG_RE.test(slug)) return respond({ error: '잘못된 slug입니다.' }, 400)
         if (!['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) return respond({ error: '지원하지 않는 이미지 형식입니다.' }, 400)
+        if (await bucketUsage() >= MAX_BUCKET_BYTES) {
+          return respond({ error: '저장 용량 한도(10GB)에 도달했습니다. 기존 게임을 삭제한 뒤 다시 시도해주세요.' }, 400)
+        }
         const oldCovers = await listKeys(`_covers/${slug}.`)
         await deleteKeys(oldCovers)
         const coverPath = `_covers/${slug}.${ext}`

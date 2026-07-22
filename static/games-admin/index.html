@@ -54,7 +54,7 @@
 <body>
 <div class="wrap">
   <h1>🎮 게임 관리자</h1>
-  <p class="sub">HTML5 게임 빌드(zip)를 업로드하면 Supabase Storage에 호스팅되고 <a href="/games/" target="_blank">/games/</a> 페이지에 공개됩니다.</p>
+  <p class="sub">HTML5 게임 빌드(zip)를 업로드하면 Cloudflare R2에 호스팅되고 <a href="/games/" target="_blank">/games/</a> 페이지에 공개됩니다.</p>
 
   <!-- 로그인 -->
   <div class="card" id="view-login">
@@ -72,6 +72,7 @@
     </div>
     <div class="card">
       <div id="game-list"><p class="hint">불러오는 중…</p></div>
+      <p class="hint" id="storage-usage"></p>
     </div>
   </div>
 
@@ -187,6 +188,14 @@ async function refresh() {
   const data = await api('list_games')
   games = data.games || []
   renderList()
+  refreshUsage()
+}
+
+async function refreshUsage() {
+  try {
+    const { used, limit } = await api('bucket_usage')
+    $('storage-usage').textContent = `저장소 사용량: ${(used / 1e9).toFixed(2)} GB / ${(limit / 1e9).toFixed(0)} GB`
+  } catch (_) { /* 표시용이므로 실패해도 무시 */ }
 }
 
 function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
@@ -278,11 +287,13 @@ function mimeOf(path) {
 async function readZip(file) {
   const zip = await JSZip.loadAsync(file)
   let paths = []
+  const sizes = {}
   zip.forEach((p, entry) => {
     if (entry.dir) return
     const base = p.split('/').pop()
     if (p.startsWith('__MACOSX/') || base.startsWith('.')) return
     paths.push(p)
+    sizes[p] = (entry._data && entry._data.uncompressedSize) || 0
   })
   if (paths.length === 0) throw new Error('zip이 비어 있습니다.')
   if (paths.length > 2000) throw new Error('파일이 너무 많습니다 (최대 2000개).')
@@ -293,13 +304,13 @@ async function readZip(file) {
     const roots = new Set(paths.map(p => p.split('/')[0]))
     if (roots.size === 1 && paths[0].includes('/')) prefix = paths[0].split('/')[0] + '/'
   }
-  const files = paths.map(p => ({ zipPath: p, path: p.slice(prefix.length) }))
+  const files = paths.map(p => ({ zipPath: p, path: p.slice(prefix.length), size: sizes[p] }))
   if (!files.some(f => f.path === 'index.html')) {
     throw new Error('zip 최상위(또는 단일 폴더 안)에 index.html이 없습니다.')
   }
   const compressed = files.filter(f => /\.(gz|br|unityweb)$/i.test(f.path))
   if (compressed.length > 0) {
-    if (!confirm('압축된 빌드 파일(.gz/.br/.unityweb)이 포함되어 있습니다.\nSupabase Storage는 압축 해제 헤더를 제공하지 않아 게임이 실행되지 않을 수 있습니다.\n(Unity의 경우 Compression Format을 Disabled로 빌드하세요)\n\n그래도 계속할까요?')) {
+    if (!confirm('압축된 빌드 파일(.gz/.br/.unityweb)이 포함되어 있습니다.\n이 형식은 압축 해제 헤더가 없어 게임이 실행되지 않을 수 있습니다.\n(Unity의 경우 Compression Format을 Disabled로 빌드하세요)\n\n그래도 계속할까요?')) {
       throw new Error('업로드를 취소했습니다.')
     }
   }
@@ -312,7 +323,11 @@ async function uploadFiles(slug, zip, files) {
   let done = 0
   for (let i = 0; i < files.length; i += 50) {
     const batch = files.slice(i, i + 50)
-    const { signed } = await api('sign_uploads', { slug, paths: batch.map(f => f.path) })
+    const { signed } = await api('sign_uploads', {
+      slug,
+      paths: batch.map(f => f.path),
+      bytes: batch.reduce((s, f) => s + (f.size || 0), 0),
+    })
     const urlMap = Object.fromEntries(signed.map(s => [s.path, s.signedUrl]))
     const queue = [...batch]
     const workers = Array.from({ length: 4 }, async () => {
