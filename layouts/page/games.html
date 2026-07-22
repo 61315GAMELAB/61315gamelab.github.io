@@ -76,7 +76,8 @@
 (function () {
   var SUPABASE_URL = 'https://nevoggtlsbqrjwdwdwcb.supabase.co'
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ldm9nZ3Rsc2Jxcmp3ZHdkd2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzI5NjAsImV4cCI6MjA5MDQ0ODk2MH0.8U9NjKPSQrkuMWHsL76z3_w5p6mglVOHZM2bVlE5Ewc'
-  var STORAGE_URL = SUPABASE_URL + '/storage/v1/object/public/games/'
+  // 게임 파일은 Cloudflare R2에서 서빙 (HTML도 정상 렌더링됨)
+  var FILES_URL = 'https://pub-a8b5407d42c548cb848c95ec45c6e8c2.r2.dev/'
 
   var grid = document.getElementById('games-grid')
   var player = document.getElementById('game-player')
@@ -99,31 +100,11 @@
     player.classList.add('open')
     document.body.style.overflow = 'hidden'
     if (location.hash !== '#play=' + slug) history.pushState(null, '', '#play=' + slug)
-
-    // supabase.co는 HTML을 text/plain으로 서빙하므로(피싱 방지 정책)
-    // 텍스트로 받아 <base>를 주입해 srcdoc으로 실행한다. 에셋은 base 덕분에
-    // 스토리지에서 원래 MIME 타입 그대로 직접 로드된다.
-    var entry = g.entry_path || 'index.html'
-    var dir = STORAGE_URL + g.slug + '/' + (entry.indexOf('/') >= 0 ? entry.slice(0, entry.lastIndexOf('/') + 1) : '')
-    fetch(STORAGE_URL + g.slug + '/' + entry)
-      .then(function (r) {
-        if (!r.ok) throw new Error('load failed')
-        return r.text()
-      })
-      .then(function (html) {
-        var baseTag = '<base href="' + dir + '">'
-        if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, '<head$1>' + baseTag)
-        else html = baseTag + html
-        frame.srcdoc = html
-      })
-      .catch(function () {
-        frame.srcdoc = '<p style="color:#fff;font-family:sans-serif;text-align:center;margin-top:40px">게임을 불러오지 못했습니다.</p>'
-      })
+    frame.src = FILES_URL + g.slug + '/' + (g.entry_path || 'index.html')
   }
 
   function closeGame() {
     player.classList.remove('open')
-    frame.removeAttribute('srcdoc')
     frame.src = 'about:blank'
     document.body.style.overflow = ''
     if (location.hash) history.pushState(null, '', location.pathname)
@@ -154,7 +135,7 @@
       games.forEach(function (g) { gamesBySlug[g.slug] = g })
       grid.innerHTML = games.map(function (g) {
         var thumb = g.cover_path
-          ? '<img src="' + STORAGE_URL + esc(g.cover_path) + '" alt="' + esc(g.title) + '" loading="lazy">'
+          ? '<img src="' + FILES_URL + esc(g.cover_path) + '" alt="' + esc(g.title) + '" loading="lazy">'
           : esc(g.title)
         return '<div class="game-card" data-slug="' + esc(g.slug) + '" role="button" tabindex="0">' +
           '<div class="thumb">' + thumb + '</div>' +

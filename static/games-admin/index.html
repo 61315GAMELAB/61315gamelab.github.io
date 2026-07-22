@@ -129,25 +129,8 @@
 const SUPABASE_URL = 'https://nevoggtlsbqrjwdwdwcb.supabase.co'
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ldm9nZ3Rsc2Jxcmp3ZHdkd2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzI5NjAsImV4cCI6MjA5MDQ0ODk2MH0.8U9NjKPSQrkuMWHsL76z3_w5p6mglVOHZM2bVlE5Ewc'
 const FN_URL = SUPABASE_URL + '/functions/v1/games-api'
-const STORAGE_URL = SUPABASE_URL + '/storage/v1/object/public/games/'
-
-// supabase.co가 HTML을 text/plain으로 서빙하므로(피싱 방지 정책)
-// 새 창에 텍스트로 받아 <base> 주입 후 document.write로 실행한다.
-async function playInNewTab(g) {
-  const w = window.open('about:blank')
-  const entry = g.entry_path || 'index.html'
-  const dir = STORAGE_URL + g.slug + '/' + (entry.includes('/') ? entry.slice(0, entry.lastIndexOf('/') + 1) : '')
-  try {
-    const res = await fetch(STORAGE_URL + g.slug + '/' + entry)
-    if (!res.ok) throw new Error()
-    let html = await res.text()
-    const baseTag = '<base href="' + dir + '">'
-    html = /<head[^>]*>/i.test(html) ? html.replace(/<head([^>]*)>/i, '<head$1>' + baseTag) : baseTag + html
-    w.document.open(); w.document.write(html); w.document.close()
-  } catch {
-    if (w) w.document.write('게임 파일을 불러오지 못했습니다.')
-  }
-}
+// 게임 파일은 Cloudflare R2에서 서빙 (HTML도 정상 렌더링됨)
+const FILES_URL = 'https://pub-a8b5407d42c548cb848c95ec45c6e8c2.r2.dev/'
 
 const $ = id => document.getElementById(id)
 let games = []
@@ -216,7 +199,7 @@ function renderList() {
   }
   el.innerHTML = games.map(g => `
     <div class="game">
-      <div class="cover">${g.cover_path ? `<img src="${STORAGE_URL}${esc(g.cover_path)}" alt="">` : esc(g.title)}</div>
+      <div class="cover">${g.cover_path ? `<img src="${FILES_URL}${esc(g.cover_path)}" alt="">` : esc(g.title)}</div>
       <div class="g-info">
         <div class="g-title">${esc(g.title)}<span class="badge ${g.published ? 'on' : 'off'}">${g.published ? '공개' : '비공개'}</span></div>
         <div class="g-meta">${esc(g.slug)} · ${g.width}×${g.height}</div>
@@ -237,7 +220,7 @@ $('game-list').addEventListener('click', async e => {
   if (!g) return
   try {
     if (btn.dataset.act === 'play') {
-      playInNewTab(g)
+      window.open(FILES_URL + g.slug + '/' + (g.entry_path || 'index.html'), '_blank')
     } else if (btn.dataset.act === 'toggle') {
       btn.disabled = true
       await api('update_game', { id: g.id, updates: { published: !g.published } })
@@ -338,7 +321,7 @@ async function uploadFiles(slug, zip, files) {
         const blob = await zip.file(f.zipPath).async('blob')
         const res = await fetch(urlMap[f.path], {
           method: 'PUT',
-          headers: { 'Content-Type': mimeOf(f.path), 'x-upsert': 'true' },
+          headers: { 'Content-Type': mimeOf(f.path) },
           body: blob,
         })
         if (!res.ok) throw new Error('업로드 실패: ' + f.path + ' (' + res.status + ')')
@@ -357,7 +340,7 @@ async function uploadCover(slug, file) {
   const { path, signedUrl } = await api('sign_cover', { slug, ext })
   const res = await fetch(signedUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': file.type || 'image/png', 'x-upsert': 'true' },
+    headers: { 'Content-Type': file.type || 'image/png' },
     body: file,
   })
   if (!res.ok) throw new Error('커버 업로드 실패')

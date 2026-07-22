@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.20'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,9 +7,19 @@ const corsHeaders = {
 }
 
 const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD')
-const BUCKET = 'games'
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,49}$/
 const PATH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\-/ ()]{0,499}$/
+
+// Game files live in Cloudflare R2 (S3-compatible); metadata stays in Supabase.
+const R2_ACCOUNT_ID = Deno.env.get('R2_ACCOUNT_ID')!
+const R2_BUCKET = Deno.env.get('R2_BUCKET')!
+const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+const r2 = new AwsClient({
+  accessKeyId: Deno.env.get('R2_ACCESS_KEY_ID')!,
+  secretAccessKey: Deno.env.get('R2_SECRET_ACCESS_KEY')!,
+  service: 's3',
+  region: 'auto',
+})
 
 function respond(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -21,27 +32,49 @@ function isSafePath(p: string): boolean {
   return PATH_RE.test(p) && !p.includes('..') && !p.startsWith('/') && !p.endsWith('/')
 }
 
-// storage.list() is not recursive — walk folders to collect every object key
-async function listAllFiles(supabase: ReturnType<typeof createClient>, prefix: string): Promise<string[]> {
-  const files: string[] = []
-  const queue = [prefix]
-  while (queue.length > 0) {
-    const dir = queue.pop()!
-    let offset = 0
-    while (true) {
-      const { data, error } = await supabase.storage.from(BUCKET).list(dir, { limit: 100, offset })
-      if (error) throw error
-      if (!data || data.length === 0) break
-      for (const entry of data) {
-        const full = dir ? `${dir}/${entry.name}` : entry.name
-        if (entry.id === null) queue.push(full) // folder
-        else files.push(full)
-      }
-      if (data.length < 100) break
-      offset += 100
+function objectUrl(key: string): string {
+  const encoded = key.split('/').map(encodeURIComponent).join('/')
+  return `${R2_ENDPOINT}/${R2_BUCKET}/${encoded}`
+}
+
+async function presignPut(key: string, expiresSeconds = 3600): Promise<string> {
+  const url = new URL(objectUrl(key))
+  url.searchParams.set('X-Amz-Expires', String(expiresSeconds))
+  const signed = await r2.sign(new Request(url.toString(), { method: 'PUT' }), {
+    aws: { signQuery: true },
+  })
+  return signed.url
+}
+
+async function listKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = []
+  let token: string | undefined
+  do {
+    const url = new URL(`${R2_ENDPOINT}/${R2_BUCKET}`)
+    url.searchParams.set('list-type', '2')
+    url.searchParams.set('prefix', prefix)
+    if (token) url.searchParams.set('continuation-token', token)
+    const res = await r2.fetch(url.toString())
+    if (!res.ok) throw new Error(`R2 list failed (${res.status})`)
+    const xml = await res.text()
+    for (const m of xml.matchAll(/<Key>([^<]+)<\/Key>/g)) {
+      keys.push(m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'"))
+    }
+    token = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)?.[1]
+  } while (token)
+  return keys
+}
+
+async function deleteKeys(keys: string[]): Promise<void> {
+  for (let i = 0; i < keys.length; i += 10) {
+    const batch = keys.slice(i, i + 10)
+    const results = await Promise.all(
+      batch.map((key) => r2.fetch(objectUrl(key), { method: 'DELETE' }))
+    )
+    for (const res of results) {
+      if (!res.ok && res.status !== 404) throw new Error(`R2 delete failed (${res.status})`)
     }
   }
-  return files
 }
 
 Deno.serve(async (req) => {
@@ -106,12 +139,9 @@ Deno.serve(async (req) => {
         const { id } = body
         const { data: game, error: getErr } = await supabase.from('games').select('slug, cover_path').eq('id', id).single()
         if (getErr) throw getErr
-        const files = await listAllFiles(supabase, game.slug)
-        if (game.cover_path) files.push(game.cover_path)
-        for (let i = 0; i < files.length; i += 100) {
-          const { error } = await supabase.storage.from(BUCKET).remove(files.slice(i, i + 100))
-          if (error) throw error
-        }
+        const keys = await listKeys(`${game.slug}/`)
+        if (game.cover_path) keys.push(game.cover_path)
+        await deleteKeys(keys)
         const { error } = await supabase.from('games').delete().eq('id', id)
         if (error) throw error
         return respond({ success: true })
@@ -121,15 +151,12 @@ Deno.serve(async (req) => {
       case 'clear_files': {
         const { slug } = body
         if (!slug || !SLUG_RE.test(slug)) return respond({ error: '잘못된 slug입니다.' }, 400)
-        const files = await listAllFiles(supabase, slug)
-        for (let i = 0; i < files.length; i += 100) {
-          const { error } = await supabase.storage.from(BUCKET).remove(files.slice(i, i + 100))
-          if (error) throw error
-        }
-        return respond({ success: true, removed: files.length })
+        const keys = await listKeys(`${slug}/`)
+        await deleteKeys(keys)
+        return respond({ success: true, removed: keys.length })
       }
 
-      // Issue signed upload URLs so the browser uploads directly to storage
+      // Issue presigned R2 PUT URLs so the browser uploads directly
       case 'sign_uploads': {
         const { slug, paths } = body
         if (!slug || !SLUG_RE.test(slug)) return respond({ error: '잘못된 slug입니다.' }, 400)
@@ -139,11 +166,7 @@ Deno.serve(async (req) => {
         const signed = []
         for (const p of paths) {
           if (typeof p !== 'string' || !isSafePath(p)) return respond({ error: `잘못된 경로: ${p}` }, 400)
-          const fullPath = `${slug}/${p}`
-          const { data, error } = await supabase.storage.from(BUCKET)
-            .createSignedUploadUrl(fullPath, { upsert: true })
-          if (error) throw error
-          signed.push({ path: p, signedUrl: data.signedUrl, token: data.token })
+          signed.push({ path: p, signedUrl: await presignPut(`${slug}/${p}`) })
         }
         return respond({ signed })
       }
@@ -153,12 +176,10 @@ Deno.serve(async (req) => {
         const { slug, ext } = body
         if (!slug || !SLUG_RE.test(slug)) return respond({ error: '잘못된 slug입니다.' }, 400)
         if (!['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) return respond({ error: '지원하지 않는 이미지 형식입니다.' }, 400)
+        const oldCovers = await listKeys(`_covers/${slug}.`)
+        await deleteKeys(oldCovers)
         const coverPath = `_covers/${slug}.${ext}`
-        await supabase.storage.from(BUCKET).remove([coverPath])
-        const { data, error } = await supabase.storage.from(BUCKET)
-          .createSignedUploadUrl(coverPath, { upsert: true })
-        if (error) throw error
-        return respond({ path: coverPath, signedUrl: data.signedUrl, token: data.token })
+        return respond({ path: coverPath, signedUrl: await presignPut(coverPath) })
       }
 
       default:
