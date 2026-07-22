@@ -1,0 +1,2 @@
+-- Stub: this version was applied to the remote database out-of-band.
+-- File added locally only to keep migration history in sync.

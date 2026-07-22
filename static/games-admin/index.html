@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>게임 관리자 | 61315 GAMELAB</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif; background: #f4f6f8; color: #2c3e50; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #7f8c9b; font-size: 13px; margin-bottom: 24px; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 16px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  input[type=text], input[type=password], input[type=number], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #d8dee5; border-radius: 8px; font-size: 14px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  input:focus, textarea:focus { outline: 2px solid #34495e33; border-color: #34495e; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  button { cursor: pointer; border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 600; font-family: inherit; }
+  .btn-primary { background: #34495e; color: #fff; }
+  .btn-primary:hover { background: #2c3e50; }
+  .btn-ghost { background: #eef1f4; color: #34495e; }
+  .btn-danger { background: #fdecea; color: #c0392b; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .game { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid #eef1f4; }
+  .game:last-child { border-bottom: none; }
+  .cover { width: 72px; height: 54px; border-radius: 8px; object-fit: cover; background: linear-gradient(135deg,#34495e,#5d7a99); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; overflow: hidden; text-align: center; }
+  .cover img { width: 100%; height: 100%; object-fit: cover; }
+  .g-info { flex: 1; min-width: 0; }
+  .g-title { font-weight: 700; font-size: 15px; }
+  .g-meta { font-size: 12px; color: #7f8c9b; margin-top: 2px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: 1px; }
+  .badge.on { background: #e8f8ef; color: #27ae60; }
+  .badge.off { background: #f0f2f5; color: #95a5a6; }
+  .g-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .progress { background: #eef1f4; border-radius: 8px; height: 10px; overflow: hidden; margin-top: 10px; display: none; }
+  .progress .bar { height: 100%; width: 0; background: #27ae60; transition: width .2s; }
+  .status { font-size: 12px; color: #7f8c9b; margin-top: 8px; min-height: 16px; word-break: break-all; }
+  .error { color: #c0392b; font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .hint { font-size: 12px; color: #95a5a6; margin-top: 4px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .file-label { display: flex; align-items: center; gap: 10px; }
+  .file-label span { font-size: 12px; color: #7f8c9b; }
+  #view-form h2 { font-size: 17px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎮 게임 관리자</h1>
+  <p class="sub">HTML5 게임 빌드(zip)를 업로드하면 Supabase Storage에 호스팅되고 <a href="/games/" target="_blank">/games/</a> 페이지에 공개됩니다.</p>
+
+  <!-- 로그인 -->
+  <div class="card" id="view-login">
+    <label for="pw">관리자 비밀번호</label>
+    <input type="password" id="pw" autocomplete="current-password">
+    <div class="error" id="login-error"></div>
+    <div style="margin-top:14px"><button class="btn-primary" id="btn-login">로그인</button></div>
+  </div>
+
+  <!-- 목록 -->
+  <div id="view-main" style="display:none">
+    <div class="topbar">
+      <button class="btn-primary" id="btn-new">+ 새 게임 업로드</button>
+      <button class="btn-ghost btn-sm" id="btn-logout">로그아웃</button>
+    </div>
+    <div class="card">
+      <div id="game-list"><p class="hint">불러오는 중…</p></div>
+    </div>
+  </div>
+
+  <!-- 업로드/수정 폼 -->
+  <div class="card" id="view-form" style="display:none">
+    <h2 id="form-title">새 게임 업로드</h2>
+    <p class="hint">zip 안에 <b>index.html</b>이 있어야 합니다. (최상위 또는 단일 폴더 안)</p>
+
+    <div class="row">
+      <div>
+        <label>제목 *</label>
+        <input type="text" id="f-title" maxlength="100">
+      </div>
+      <div>
+        <label>slug (URL용, 소문자·숫자·하이픈) *</label>
+        <input type="text" id="f-slug" maxlength="50" placeholder="my-game">
+      </div>
+    </div>
+
+    <label>설명</label>
+    <textarea id="f-desc" maxlength="2000"></textarea>
+
+    <div class="row">
+      <div>
+        <label>가로 (px)</label>
+        <input type="number" id="f-width" value="960" min="100" max="4096">
+      </div>
+      <div>
+        <label>세로 (px)</label>
+        <input type="number" id="f-height" value="600" min="100" max="4096">
+      </div>
+    </div>
+
+    <label>게임 빌드 (zip)</label>
+    <div class="file-label">
+      <input type="file" id="f-zip" accept=".zip">
+      <span id="zip-note"></span>
+    </div>
+
+    <label>커버 이미지 (선택)</label>
+    <input type="file" id="f-cover" accept="image/png,image/jpeg,image/webp,image/gif">
+
+    <div class="progress" id="progress"><div class="bar" id="progress-bar"></div></div>
+    <div class="status" id="upload-status"></div>
+    <div class="error" id="form-error"></div>
+
+    <div style="margin-top:18px; display:flex; gap:8px">
+      <button class="btn-primary" id="btn-save">저장</button>
+      <button class="btn-ghost" id="btn-cancel">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nevoggtlsbqrjwdwdwcb.supabase.co'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ldm9nZ3Rsc2Jxcmp3ZHdkd2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzI5NjAsImV4cCI6MjA5MDQ0ODk2MH0.8U9NjKPSQrkuMWHsL76z3_w5p6mglVOHZM2bVlE5Ewc'
+const FN_URL = SUPABASE_URL + '/functions/v1/games-api'
+const STORAGE_URL = SUPABASE_URL + '/storage/v1/object/public/games/'
+
+// supabase.co가 HTML을 text/plain으로 서빙하므로(피싱 방지 정책)
+// 새 창에 텍스트로 받아 <base> 주입 후 document.write로 실행한다.
+async function playInNewTab(g) {
+  const w = window.open('about:blank')
+  const entry = g.entry_path || 'index.html'
+  const dir = STORAGE_URL + g.slug + '/' + (entry.includes('/') ? entry.slice(0, entry.lastIndexOf('/') + 1) : '')
+  try {
+    const res = await fetch(STORAGE_URL + g.slug + '/' + entry)
+    if (!res.ok) throw new Error()
+    let html = await res.text()
+    const baseTag = '<base href="' + dir + '">'
+    html = /<head[^>]*>/i.test(html) ? html.replace(/<head([^>]*)>/i, '<head$1>' + baseTag) : baseTag + html
+    w.document.open(); w.document.write(html); w.document.close()
+  } catch {
+    if (w) w.document.write('게임 파일을 불러오지 못했습니다.')
+  }
+}
+
+const $ = id => document.getElementById(id)
+let games = []
+let editing = null // null = new, otherwise the game being edited
+
+// ---------- API ----------
+async function api(action, payload = {}) {
+  const res = await fetch(FN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + ANON_KEY,
+      'x-admin-password': sessionStorage.getItem('games_admin_pw') || '',
+    },
+    body: JSON.stringify({ action, ...payload }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    if (res.status === 401) { logout(); }
+    throw new Error(data.error || '요청 실패 (' + res.status + ')')
+  }
+  return data
+}
+
+// ---------- 로그인 ----------
+async function login() {
+  const pw = $('pw').value
+  if (!pw) return
+  sessionStorage.setItem('games_admin_pw', pw)
+  $('login-error').textContent = ''
+  $('btn-login').disabled = true
+  try {
+    await refresh()
+    $('view-login').style.display = 'none'
+    $('view-main').style.display = 'block'
+  } catch (e) {
+    sessionStorage.removeItem('games_admin_pw')
+    $('login-error').textContent = e.message
+  } finally {
+    $('btn-login').disabled = false
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('games_admin_pw')
+  $('view-main').style.display = 'none'
+  $('view-form').style.display = 'none'
+  $('view-login').style.display = 'block'
+}
+
+// ---------- 목록 ----------
+async function refresh() {
+  const data = await api('list_games')
+  games = data.games || []
+  renderList()
+}
+
+function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+function renderList() {
+  const el = $('game-list')
+  if (games.length === 0) {
+    el.innerHTML = '<p class="hint">등록된 게임이 없습니다. "새 게임 업로드"로 시작하세요.</p>'
+    return
+  }
+  el.innerHTML = games.map(g => `
+    <div class="game">
+      <div class="cover">${g.cover_path ? `<img src="${STORAGE_URL}${esc(g.cover_path)}" alt="">` : esc(g.title)}</div>
+      <div class="g-info">
+        <div class="g-title">${esc(g.title)}<span class="badge ${g.published ? 'on' : 'off'}">${g.published ? '공개' : '비공개'}</span></div>
+        <div class="g-meta">${esc(g.slug)} · ${g.width}×${g.height}</div>
+      </div>
+      <div class="g-actions">
+        <button class="btn-ghost btn-sm" data-act="play" data-id="${g.id}">테스트</button>
+        <button class="btn-ghost btn-sm" data-act="toggle" data-id="${g.id}">${g.published ? '비공개로' : '공개하기'}</button>
+        <button class="btn-ghost btn-sm" data-act="edit" data-id="${g.id}">수정</button>
+        <button class="btn-danger btn-sm" data-act="del" data-id="${g.id}">삭제</button>
+      </div>
+    </div>`).join('')
+}
+
+$('game-list').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]')
+  if (!btn) return
+  const g = games.find(x => x.id === btn.dataset.id)
+  if (!g) return
+  try {
+    if (btn.dataset.act === 'play') {
+      playInNewTab(g)
+    } else if (btn.dataset.act === 'toggle') {
+      btn.disabled = true
+      await api('update_game', { id: g.id, updates: { published: !g.published } })
+      await refresh()
+    } else if (btn.dataset.act === 'edit') {
+      openForm(g)
+    } else if (btn.dataset.act === 'del') {
+      if (!confirm(`"${g.title}" 게임과 업로드된 파일을 모두 삭제할까요?`)) return
+      btn.disabled = true
+      await api('delete_game', { id: g.id })
+      await refresh()
+    }
+  } catch (err) { alert(err.message) }
+})
+
+// ---------- 폼 ----------
+function openForm(game) {
+  editing = game || null
+  $('form-title').textContent = game ? `게임 수정: ${game.title}` : '새 게임 업로드'
+  $('f-title').value = game ? game.title : ''
+  $('f-slug').value = game ? game.slug : ''
+  $('f-slug').disabled = !!game
+  $('f-desc').value = game ? game.description : ''
+  $('f-width').value = game ? game.width : 960
+  $('f-height').value = game ? game.height : 600
+  $('f-zip').value = ''
+  $('f-cover').value = ''
+  $('zip-note').textContent = game ? '(다시 올리면 기존 빌드를 교체합니다)' : ''
+  $('form-error').textContent = ''
+  $('upload-status').textContent = ''
+  $('progress').style.display = 'none'
+  $('view-form').style.display = 'block'
+  $('view-main').style.display = 'none'
+}
+
+function closeForm() {
+  $('view-form').style.display = 'none'
+  $('view-main').style.display = 'block'
+}
+
+// ---------- zip 처리 ----------
+const MIME = {
+  html: 'text/html', htm: 'text/html', js: 'application/javascript', mjs: 'application/javascript',
+  css: 'text/css', json: 'application/json', wasm: 'application/wasm', xml: 'application/xml', txt: 'text/plain',
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+  svg: 'image/svg+xml', ico: 'image/x-icon', mp3: 'audio/mpeg', ogg: 'audio/ogg', wav: 'audio/wav',
+  m4a: 'audio/mp4', mp4: 'video/mp4', webm: 'video/webm', woff: 'font/woff', woff2: 'font/woff2',
+  ttf: 'font/ttf', otf: 'font/otf', pdf: 'application/pdf',
+}
+function mimeOf(path) {
+  const ext = path.split('.').pop().toLowerCase()
+  return MIME[ext] || 'application/octet-stream'
+}
+
+async function readZip(file) {
+  const zip = await JSZip.loadAsync(file)
+  let paths = []
+  zip.forEach((p, entry) => {
+    if (entry.dir) return
+    const base = p.split('/').pop()
+    if (p.startsWith('__MACOSX/') || base.startsWith('.')) return
+    paths.push(p)
+  })
+  if (paths.length === 0) throw new Error('zip이 비어 있습니다.')
+  if (paths.length > 2000) throw new Error('파일이 너무 많습니다 (최대 2000개).')
+
+  // 모든 파일이 단일 폴더 안에 있으면 그 폴더를 벗겨낸다
+  let prefix = ''
+  if (!paths.includes('index.html')) {
+    const roots = new Set(paths.map(p => p.split('/')[0]))
+    if (roots.size === 1 && paths[0].includes('/')) prefix = paths[0].split('/')[0] + '/'
+  }
+  const files = paths.map(p => ({ zipPath: p, path: p.slice(prefix.length) }))
+  if (!files.some(f => f.path === 'index.html')) {
+    throw new Error('zip 최상위(또는 단일 폴더 안)에 index.html이 없습니다.')
+  }
+  const compressed = files.filter(f => /\.(gz|br|unityweb)$/i.test(f.path))
+  if (compressed.length > 0) {
+    if (!confirm('압축된 빌드 파일(.gz/.br/.unityweb)이 포함되어 있습니다.\nSupabase Storage는 압축 해제 헤더를 제공하지 않아 게임이 실행되지 않을 수 있습니다.\n(Unity의 경우 Compression Format을 Disabled로 빌드하세요)\n\n그래도 계속할까요?')) {
+      throw new Error('업로드를 취소했습니다.')
+    }
+  }
+  return { zip, files }
+}
+
+async function uploadFiles(slug, zip, files) {
+  const bar = $('progress-bar'), status = $('upload-status')
+  $('progress').style.display = 'block'
+  let done = 0
+  for (let i = 0; i < files.length; i += 50) {
+    const batch = files.slice(i, i + 50)
+    const { signed } = await api('sign_uploads', { slug, paths: batch.map(f => f.path) })
+    const urlMap = Object.fromEntries(signed.map(s => [s.path, s.signedUrl]))
+    const queue = [...batch]
+    const workers = Array.from({ length: 4 }, async () => {
+      while (queue.length > 0) {
+        const f = queue.shift()
+        const blob = await zip.file(f.zipPath).async('blob')
+        const res = await fetch(urlMap[f.path], {
+          method: 'PUT',
+          headers: { 'Content-Type': mimeOf(f.path), 'x-upsert': 'true' },
+          body: blob,
+        })
+        if (!res.ok) throw new Error('업로드 실패: ' + f.path + ' (' + res.status + ')')
+        done++
+        bar.style.width = Math.round(done / files.length * 100) + '%'
+        status.textContent = `업로드 중 ${done}/${files.length} — ${f.path}`
+      }
+    })
+    await Promise.all(workers)
+  }
+  status.textContent = `업로드 완료 (${files.length}개 파일)`
+}
+
+async function uploadCover(slug, file) {
+  const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace('jpeg', 'jpg')
+  const { path, signedUrl } = await api('sign_cover', { slug, ext })
+  const res = await fetch(signedUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'image/png', 'x-upsert': 'true' },
+    body: file,
+  })
+  if (!res.ok) throw new Error('커버 업로드 실패')
+  return path
+}
+
+// ---------- 저장 ----------
+async function save() {
+  const errEl = $('form-error')
+  errEl.textContent = ''
+  const title = $('f-title').value.trim()
+  const slug = $('f-slug').value.trim()
+  const description = $('f-desc').value.trim()
+  const width = parseInt($('f-width').value, 10) || 960
+  const height = parseInt($('f-height').value, 10) || 600
+  const zipFile = $('f-zip').files[0]
+  const coverFile = $('f-cover').files[0]
+
+  if (!title) { errEl.textContent = '제목을 입력해주세요.'; return }
+  if (!/^[a-z0-9][a-z0-9-]{0,49}$/.test(slug)) { errEl.textContent = 'slug는 소문자/숫자/하이픈만 사용할 수 있습니다.'; return }
+  if (!editing && !zipFile) { errEl.textContent = '게임 빌드 zip을 선택해주세요.'; return }
+
+  $('btn-save').disabled = true
+  try {
+    let parsed = null
+    if (zipFile) {
+      $('upload-status').textContent = 'zip 압축 해제 중…'
+      parsed = await readZip(zipFile)
+    }
+
+    let game = editing
+    if (!game) {
+      const data = await api('create_game', { slug, title, description, width, height })
+      game = data.game
+    }
+
+    if (parsed) {
+      if (editing) await api('clear_files', { slug })
+      await uploadFiles(slug, parsed.zip, parsed.files)
+    }
+
+    const updates = { title, description, width, height }
+    if (coverFile) updates.cover_path = await uploadCover(slug, coverFile)
+    await api('update_game', { id: game.id, updates })
+
+    await refresh()
+    closeForm()
+  } catch (e) {
+    errEl.textContent = e.message
+  } finally {
+    $('btn-save').disabled = false
+  }
+}
+
+// ---------- 이벤트 ----------
+$('btn-login').addEventListener('click', login)
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+$('btn-logout').addEventListener('click', logout)
+$('btn-new').addEventListener('click', () => openForm(null))
+$('btn-cancel').addEventListener('click', closeForm)
+$('btn-save').addEventListener('click', save)
+
+// 자동 로그인 시도
+if (sessionStorage.getItem('games_admin_pw')) {
+  refresh().then(() => {
+    $('view-login').style.display = 'none'
+    $('view-main').style.display = 'block'
+  }).catch(() => sessionStorage.removeItem('games_admin_pw'))
+}
+</script>
+</body>
+</html>
