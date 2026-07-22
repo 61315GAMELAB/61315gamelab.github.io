@@ -75,7 +75,7 @@
     <div class="file-label">
       <input type="file" id="f-zip" accept=".zip">
     </div>
-    <p class="hint">zip 안에 <b>index.html</b>이 있어야 합니다. (최상위 또는 단일 폴더 안)</p>
+    <p class="hint">zip 안에 <b>index.html</b>이 있어야 합니다. (최상위 또는 단일 폴더 안) Unity WebGL 압축 빌드(gzip/brotli)도 그대로 올리면 돼요.</p>
 
     <label>커버 이미지 (선택)</label>
     <input type="file" id="f-cover" accept="image/png,image/jpeg,image/webp,image/gif">
@@ -179,13 +179,23 @@ async function readZip(file) {
   if (!files.some(f => f.path === 'index.html')) {
     throw new Error('zip 최상위(또는 단일 폴더 안)에 index.html이 없습니다.')
   }
-  const compressed = files.filter(f => /\.(gz|br|unityweb)$/i.test(f.path))
-  if (compressed.length > 0) {
-    if (!confirm('압축된 빌드 파일(.gz/.br/.unityweb)이 포함되어 있습니다.\n이 형식은 압축 해제 헤더가 없어 게임이 실행되지 않을 수 있습니다.\n(Unity의 경우 Compression Format을 Disabled로 빌드하세요)\n\n그래도 계속할까요?')) {
-      throw new Error('업로드를 취소했습니다.')
-    }
-  }
   return { zip, files }
+}
+
+// 압축된 빌드(.gz/.br, 구형 .unityweb)는 Content-Encoding을 붙여 올린다.
+// Cloudflare가 업로드 시점에 압축을 풀어 원본을 저장하므로 어떤 Unity 빌드 설정이든 동작한다.
+async function uploadHeaders(path, blob) {
+  const p = path.toLowerCase()
+  if (p.endsWith('.gz')) return { 'Content-Type': mimeOf(p.slice(0, -3)), 'Content-Encoding': 'gzip' }
+  if (p.endsWith('.br')) return { 'Content-Type': mimeOf(p.slice(0, -3)), 'Content-Encoding': 'br' }
+  if (p.endsWith('.unityweb')) {
+    const head = new Uint8Array(await blob.slice(0, 64).arrayBuffer())
+    if (head[0] === 0x1f && head[1] === 0x8b) return { 'Content-Type': 'application/octet-stream', 'Content-Encoding': 'gzip' }
+    let ascii = ''
+    for (let i = 0; i < head.length; i++) ascii += String.fromCharCode(head[i])
+    if (ascii.includes('UnityWeb Compressed Content (brotli)')) return { 'Content-Type': 'application/octet-stream', 'Content-Encoding': 'br' }
+  }
+  return { 'Content-Type': mimeOf(path) }
 }
 
 async function uploadFiles(slug, token, zip, files) {
@@ -208,7 +218,7 @@ async function uploadFiles(slug, token, zip, files) {
         const blob = await zip.file(f.zipPath).async('blob')
         const res = await fetch(urlMap[f.path], {
           method: 'PUT',
-          headers: { 'Content-Type': mimeOf(f.path) },
+          headers: await uploadHeaders(f.path, blob),
           body: blob,
         })
         if (!res.ok) throw new Error('업로드 실패: ' + f.path + ' (' + res.status + ')')
