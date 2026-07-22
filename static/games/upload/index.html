@@ -198,7 +198,20 @@ async function uploadHeaders(path, blob) {
   return { 'Content-Type': mimeOf(path) }
 }
 
-async function uploadFiles(slug, token, zip, files) {
+// 500MB가 넘는 대용량 게임은 61315 운영진 이름을 알아야 올릴 수 있다 (정답 확인은 서버에서)
+const BIG_GAME_BYTES = 500 * 1000 * 1000
+
+function askStaffName(totalBytes) {
+  if (totalBytes <= BIG_GAME_BYTES) return null
+  const answer = prompt(
+    `이 게임은 ${(totalBytes / 1e6).toFixed(0)}MB로 500MB가 넘어요.\n` +
+    '대용량 게임은 61315 운영진의 이름을 한 명 입력해야 올릴 수 있어요.'
+  )
+  if (answer === null) throw new Error('업로드를 취소했습니다.')
+  return answer.trim()
+}
+
+async function uploadFiles(slug, token, zip, files, staffName) {
   const bar = $('progress-bar'), status = $('upload-status')
   $('progress').style.display = 'block'
   let done = 0
@@ -207,6 +220,7 @@ async function uploadFiles(slug, token, zip, files) {
     const { signed } = await api('sign_uploads', {
       slug,
       token,
+      staff_name: staffName || undefined,
       paths: batch.map(f => f.path),
       bytes: batch.reduce((s, f) => s + (f.size || 0), 0),
     })
@@ -283,12 +297,15 @@ async function save() {
       }
     }
 
+    const totalBytes = parsed.files.reduce((s, f) => s + (f.size || 0), 0)
+    const staffName = askStaffName(totalBytes)
+
     if (isReupload) {
       $('upload-status').textContent = '기존 빌드 삭제 중…'
       await api('clear_files', { slug, token })
     }
 
-    await uploadFiles(slug, token, parsed.zip, parsed.files)
+    await uploadFiles(slug, token, parsed.zip, parsed.files, staffName)
 
     let cover_path
     if (coverFile) {
@@ -303,7 +320,9 @@ async function save() {
     $('done-msg').textContent = (isReupload ? `"${title}" 빌드를 교체했습니다.` : `"${title}" 게임이 공개되었습니다.`) + ` (주소: ${slug})`
     $('done-link').href = '/games/#play=' + slug
   } catch (e) {
-    errEl.textContent = e.message
+    errEl.textContent = e.message === 'STAFF_CHECK_FAILED'
+      ? '운영진 이름이 맞지 않아요. 이름을 확인하고 다시 시도해주세요.'
+      : e.message
   } finally {
     $('btn-save').disabled = false
   }

@@ -25,6 +25,11 @@ const r2 = new AwsClient({
 const MAX_BUCKET_BYTES = 10 * 1000 ** 3
 // Anonymous-upload abuse guard: games one IP can create per 24h
 const MAX_GAMES_PER_IP_PER_DAY = 10
+// Games above this size require naming a 61315 staff member.
+// The roster lives ONLY in the STAFF_NAMES secret (comma-separated) — never in this repo.
+const BIG_GAME_BYTES = 500 * 1000 ** 2
+const STAFF_NAMES = (Deno.env.get('STAFF_NAMES') || '')
+  .split(',').map((n) => n.replace(/\s+/g, '')).filter(Boolean)
 
 // Columns safe to return to clients (never upload_token; uploader_ip is admin-only)
 const GAME_COLS = 'id, slug, title, description, entry_path, cover_path, width, height, published, created_at, updated_at'
@@ -184,12 +189,24 @@ Deno.serve(async (req) => {
         if (!Array.isArray(paths) || paths.length === 0 || paths.length > 100) {
           return respond({ error: '경로는 1~100개씩 요청해주세요.' }, 400)
         }
-        const used = await bucketUsage()
+        const objects = await listObjects('')
+        const used = objects.reduce((sum, o) => sum + o.size, 0)
         const incoming = typeof bytes === 'number' && bytes > 0 ? bytes : 0
         if (used + incoming > MAX_BUCKET_BYTES) {
           return respond({
             error: `저장 용량 한도(10GB)를 초과합니다. 현재 ${(used / 1e9).toFixed(2)}GB 사용 중입니다.`,
           }, 400)
+        }
+        // 500MB가 넘는 게임은 운영진 이름을 알아야 올릴 수 있다 (이미 올라간 실제 크기 기준)
+        const gameUsed = objects.filter((o) => o.key.startsWith(`${slug}/`)).reduce((sum, o) => sum + o.size, 0)
+        if (gameUsed + incoming > BIG_GAME_BYTES) {
+          const answer = typeof body.staff_name === 'string' ? body.staff_name.replace(/\s+/g, '') : ''
+          if (STAFF_NAMES.length === 0) {
+            return respond({ error: '500MB가 넘는 게임 업로드는 현재 비활성화되어 있습니다.' }, 403)
+          }
+          if (!STAFF_NAMES.includes(answer)) {
+            return respond({ error: 'STAFF_CHECK_FAILED' }, 403)
+          }
         }
         const signed = []
         for (const p of paths) {
