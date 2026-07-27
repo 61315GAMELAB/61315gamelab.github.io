@@ -17,10 +17,10 @@ favicon = "/favicon.png"
 [applyModal]
 enabled = true
 image = "img/apply-promo.png"
-link = "/apply/"
+link = "/apply/#/form"
 alt = "61315 GAMELAB 지원하기 (~8/24)"
 ctaText = "지금 지원하기 →"
-startDate = "2026-08-08"
+startDate = "2026-07-28"
 endDate = "2026-08-24"
 
 [footer]
