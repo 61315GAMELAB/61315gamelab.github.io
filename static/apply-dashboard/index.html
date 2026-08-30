@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>지원자 대시보드 | 61315 GAMELAB</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f6f8; --card: #fff; --ink: #2c3e50; --sub: #7f8c9b; --line: #e7ebf0;
+    --brand: #34495e; --brand-d: #2c3e50;
+  }
+  html, body { height: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif; background: var(--bg); color: var(--ink); }
+
+  /* ---------- 로그인 ---------- */
+  .login-wrap { max-width: 380px; margin: 12vh auto 0; padding: 0 20px; }
+  .card { background: var(--card); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .login-wrap .card { padding: 28px 24px; }
+  h1 { font-size: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  input[type=password], input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid #d8dee5; border-radius: 8px; font-size: 14px; font-family: inherit; }
+  input:focus { outline: 2px solid #34495e33; border-color: var(--brand); }
+  button { cursor: pointer; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: inherit; }
+  .btn-primary { background: var(--brand); color: #fff; padding: 10px 18px; }
+  .btn-primary:hover { background: var(--brand-d); }
+  .btn-ghost { background: #eef1f4; color: var(--brand); padding: 8px 14px; }
+  .btn-ghost:hover { background: #e3e8ee; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .error { color: #c0392b; font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .hint { font-size: 12px; color: #95a5a6; }
+
+  /* ---------- 대시보드 셸 ---------- */
+  #view-main { display: none; height: 100vh; flex-direction: column; }
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .topbar h1 { font-size: 17px; white-space: nowrap; }
+  .topbar .spacer { flex: 1; }
+  .topbar select, .topbar input[type=text] { padding: 7px 10px; border: 1px solid #d8dee5; border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; }
+  .topbar input[type=text] { width: 180px; }
+  .count-chip { font-size: 12px; color: var(--sub); font-weight: 600; }
+
+  .body { flex: 1; overflow: auto; padding: 16px 20px 40px; }
+
+  /* ---------- 요약 ---------- */
+  .summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-start; }
+  .panel { background: var(--card); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 14px 16px; }
+  .panel h2 { font-size: 13px; color: var(--sub); margin-bottom: 10px; letter-spacing: .02em; }
+  table.sum { border-collapse: collapse; font-size: 13px; }
+  table.sum th, table.sum td { padding: 6px 12px; text-align: center; border: 1px solid var(--line); white-space: nowrap; }
+  table.sum thead th { background: #f7f9fb; font-weight: 700; }
+  table.sum td.part { text-align: left; font-weight: 700; }
+  table.sum tr.total td { background: #f7f9fb; font-weight: 800; }
+  table.sum td.big { font-weight: 800; }
+  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { background: var(--card); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 12px 16px; min-width: 96px; }
+  .stat .n { font-size: 24px; font-weight: 800; line-height: 1.1; }
+  .stat .l { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+  /* ---------- 지원자 표 ---------- */
+  .table-panel { background: var(--card); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+  .tbl-scroll { overflow-x: auto; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 13px; white-space: nowrap; }
+  table.grid thead th { position: sticky; top: 0; background: #eef2f6; color: #4a5b6b; font-weight: 700; font-size: 12px;
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid #dbe2e9; cursor: pointer; user-select: none; }
+  table.grid thead th.sortable:hover { background: #e4eaf0; }
+  table.grid tbody td { padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  table.grid tbody tr:nth-child(even) { background: #fafbfc; }
+  table.grid tbody tr:hover { background: #eef6ff; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center, th.center { text-align: center; }
+  .mono { font-family: ui-monospace, "SF Mono", monospace; font-size: 12px; }
+  .name { font-weight: 700; }
+  .muted { color: var(--sub); }
+  .sub-part { font-size: 11px; color: var(--sub); margin-left: 4px; }
+  .score { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* chips */
+  .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; line-height: 1.6; }
+  .p-기획 { background: #e8f0fe; color: #1a56db; }
+  .p-개발 { background: #fde8ea; color: #d81f4a; }
+  .p-뉴비 { background: #fff3d6; color: #b06000; }
+  .p-아트 { background: #efe7fd; color: #7b2fd6; }
+  .p-사운드 { background: #e6f6f2; color: #0d8a6a; }
+  .p-기타 { background: #eef1f4; color: #5b6b7b; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 5px; margin-left: 5px; vertical-align: 1px; }
+  .tag-fast { background: #fff0e6; color: #d35400; }
+  .tag-late { background: #fdecea; color: #c0392b; }
+  .st { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 6px; }
+  .st-서류접수 { background: #eef1f4; color: #5b6b7b; }
+  .st-1차합격 { background: #e8f0fe; color: #1a56db; }
+  .st-최종합격 { background: #e7f7ed; color: #1a9e54; }
+  .st-불합격 { background: #fdecea; color: #c0392b; }
+
+  .empty { padding: 40px; text-align: center; color: var(--sub); }
+  a.lnk { color: var(--brand); text-decoration: none; }
+  a.lnk:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div class="login-wrap" id="view-login">
+  <div class="card">
+    <h1>📊 지원자 대시보드</h1>
+    <p class="hint" style="margin-top:6px">61315 GAMELAB 모집 관리자 전용</p>
+    <label for="pw">관리자 비밀번호</label>
+    <input type="password" id="pw" autocomplete="current-password">
+    <div class="error" id="login-error"></div>
+    <div style="margin-top:14px"><button class="btn-primary" id="btn-login">로그인</button></div>
+  </div>
+</div>
+
+<!-- 대시보드 -->
+<div id="view-main">
+  <div class="topbar">
+    <h1>📊 지원자 대시보드</h1>
+    <select id="season-sel" title="시즌 선택"></select>
+    <input type="text" id="search" placeholder="이름·연락처 검색…">
+    <span class="spacer"></span>
+    <span class="count-chip" id="count-chip"></span>
+    <button class="btn-ghost btn-sm" id="btn-refresh">새로고침</button>
+    <button class="btn-ghost btn-sm" id="btn-logout">로그아웃</button>
+  </div>
+
+  <div class="body">
+    <div class="summary" id="summary"></div>
+    <div class="table-panel">
+      <div class="tbl-scroll">
+        <table class="grid" id="grid">
+          <thead><tr id="grid-head"></tr></thead>
+          <tbody id="grid-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://nevoggtlsbqrjwdwdwcb.supabase.co'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ldm9nZ3Rsc2Jxcmp3ZHdkd2NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzI5NjAsImV4cCI6MjA5MDQ0ODk2MH0.8U9NjKPSQrkuMWHsL76z3_w5p6mglVOHZM2bVlE5Ewc'
+const FN_URL = SUPABASE_URL + '/functions/v1/admin-api'
+const PW_KEY = 'apply_admin_pw'
+
+// 파트/전형 정의 (앱 번들과 동일)
+const PARTS = ['기획', '개발', '아트', '사운드', '기타']
+const CATS = ['기획', '개발', '뉴비', '아트', '사운드', '기타'] // 뉴비 별도 카운트
+const STAGES = ['서류접수', '1차합격', '최종합격', '불합격']
+
+const $ = id => document.getElementById(id)
+let seasons = []
+let apps = []
+let sortKey = 'score'
+let sortDir = -1
+
+// ---------- API ----------
+async function api(action, payload = {}) {
+  const res = await fetch(FN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + ANON_KEY,
+      'x-admin-password': sessionStorage.getItem(PW_KEY) || '',
+    },
+    body: JSON.stringify({ action, ...payload }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    if (res.status === 401) logout()
+    throw new Error(data.error || '요청 실패 (' + res.status + ')')
+  }
+  return data
+}
+
+// ---------- 로그인 ----------
+async function login() {
+  const pw = $('pw').value
+  if (!pw) return
+  sessionStorage.setItem(PW_KEY, pw)
+  $('login-error').textContent = ''
+  $('btn-login').disabled = true
+  try {
+    await boot()
+    $('view-login').style.display = 'none'
+    $('view-main').style.display = 'flex'
+  } catch (e) {
+    sessionStorage.removeItem(PW_KEY)
+    $('login-error').textContent = e.message
+  } finally {
+    $('btn-login').disabled = false
+  }
+}
+function logout() {
+  sessionStorage.removeItem(PW_KEY)
+  $('view-main').style.display = 'none'
+  $('view-login').style.display = 'block'
+}
+
+// ---------- 부트: 시즌 로드 → 지원자 로드 ----------
+async function boot() {
+  const { seasons: ss } = await api('list_seasons')
+  seasons = ss || []
+  const sel = $('season-sel')
+  sel.innerHTML = '<option value="">전체 시즌</option>' +
+    seasons.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')
+  // 기본값: 가장 최근 시즌
+  if (seasons.length) sel.value = seasons[0].id
+  await loadApps()
+}
+
+async function loadApps() {
+  const seasonId = $('season-sel').value
+  const { applications } = await api('list_applications', seasonId ? { season_id: seasonId } : {})
+  apps = applications || []
+  render()
+}
+
+// ---------- 유틸 ----------
+function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+function catOf(a) { return a.track_type === 'newbie' ? '뉴비' : (PARTS.includes(a.part) ? a.part : (a.part ? '기타' : '기타')) }
+function fmtScore(v) { return (v === null || v === undefined || v === '' || isNaN(+v)) ? '–' : (+v).toFixed(1) }
+function itvTime(a) {
+  const dt = a.interview_slots?.slot_datetime || a.interview_datetime
+  if (!dt) return null
+  const d = new Date(dt)
+  if (isNaN(d)) return String(dt)
+  const days = ['일','월','화','수','목','금','토']
+  const p = n => String(n).padStart(2, '0')
+  // KST 기준 표기
+  const k = new Date(d.getTime() + 9 * 3600 * 1000)
+  return `${k.getUTCMonth()+1}/${k.getUTCDate()}(${days[k.getUTCDay()]}) ${p(k.getUTCHours())}:${p(k.getUTCMinutes())}`
+}
+
+// ---------- 렌더 ----------
+function render() {
+  renderSummary()
+  renderGrid()
+  $('count-chip').textContent = `총 ${apps.length}명`
+}
+
+function renderSummary() {
+  // 파트 × 전형 집계
+  const M = {}
+  CATS.forEach(c => { M[c] = { total: 0, '서류접수': 0, '1차합격': 0, '최종합격': 0, '불합격': 0 } })
+  apps.forEach(a => {
+    const c = catOf(a); if (!M[c]) M[c] = { total: 0, '서류접수':0,'1차합격':0,'최종합격':0,'불합격':0 }
+    M[c].total++
+    if (M[c][a.stage] !== undefined) M[c][a.stage]++
+  })
+  const sum = k => CATS.reduce((s, c) => s + (M[c][k] || (k === 'total' ? M[c].total : 0)), 0)
+  const T = { total: apps.length,
+    '서류접수': apps.filter(a=>a.stage==='서류접수').length,
+    '1차합격': apps.filter(a=>a.stage==='1차합격').length,
+    '최종합격': apps.filter(a=>a.stage==='최종합격').length,
+    '불합격': apps.filter(a=>a.stage==='불합격').length }
+
+  const rows = CATS.map(c => `
+    <tr>
+      <td class="part"><span class="chip p-${c}">${c}</span></td>
+      <td class="big">${M[c].total}</td>
+      <td>${M[c]['서류접수']}</td>
+      <td>${M[c]['1차합격']}</td>
+      <td class="big" style="color:#1a9e54">${M[c]['최종합격']}</td>
+      <td class="muted">${M[c]['불합격']}</td>
+    </tr>`).join('')
+
+  const partTable = `
+    <div class="panel">
+      <h2>파트별 전형 현황 <span class="hint">(뉴비 별도 집계)</span></h2>
+      <table class="sum">
+        <thead><tr><th style="text-align:left">파트</th><th>지원</th><th>서류접수</th><th>1차합격</th><th>최종합격</th><th>불합격</th></tr></thead>
+        <tbody>
+          ${rows}
+          <tr class="total">
+            <td class="part" style="text-align:left">계</td>
+            <td>${T.total}</td><td>${T['서류접수']}</td><td>${T['1차합격']}</td>
+            <td style="color:#1a9e54">${T['최종합격']}</td><td>${T['불합격']}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`
+
+  const stats = `
+    <div>
+      <div class="stat-row">
+        <div class="stat"><div class="n">${T.total}</div><div class="l">전체 지원</div></div>
+        <div class="stat"><div class="n" style="color:#1a56db">${T['1차합격']}</div><div class="l">1차합격</div></div>
+        <div class="stat"><div class="n" style="color:#1a9e54">${T['최종합격']}</div><div class="l">최종합격</div></div>
+        <div class="stat"><div class="n" style="color:#b06000">${apps.filter(a=>a.track_type==='newbie').length}</div><div class="l">뉴비 전형</div></div>
+        <div class="stat"><div class="n" style="color:#d35400">${apps.filter(a=>a.track_type==='fast_lane').length}</div><div class="l">Fast Lane</div></div>
+      </div>
+    </div>`
+
+  $('summary').innerHTML = partTable + stats
+}
+
+const COLS = [
+  { key: '_idx', label: '#', cls: 'center' },
+  { key: 'name', label: '이름' },
+  { key: '_cat', label: '파트' },
+  { key: 'referrer', label: '추천인(지인)' },
+  { key: 'phone', label: '연락처' },
+  { key: 'email', label: '이메일' },
+  { key: '_itv', label: '인터뷰 시간' },
+  { key: 'score', label: '점수', cls: 'num', sortable: true },
+  { key: 'stage', label: '전형 단계', cls: 'center' },
+]
+
+function renderGrid() {
+  // 헤더
+  $('grid-head').innerHTML = COLS.map(c => {
+    const sortable = c.key === 'score' || c.key === 'name' || c.key === 'stage'
+    const arrow = sortKey === c.key ? (sortDir === -1 ? ' ▼' : ' ▲') : ''
+    return `<th class="${c.cls||''} ${sortable?'sortable':''}" data-key="${c.key}">${esc(c.label)}${arrow}</th>`
+  }).join('')
+
+  // 정렬 + 검색
+  const q = $('search').value.trim().toLowerCase()
+  let list = apps.slice()
+  if (q) list = list.filter(a => (a.name||'').toLowerCase().includes(q) || (a.phone||'').includes(q))
+  list.sort((a, b) => {
+    let va, vb
+    if (sortKey === 'score') { va = +a.score || -1; vb = +b.score || -1 }
+    else if (sortKey === 'stage') { va = STAGES.indexOf(a.stage); vb = STAGES.indexOf(b.stage) }
+    else { va = (a[sortKey]||'').toString(); vb = (b[sortKey]||'').toString(); return sortDir * va.localeCompare(vb, 'ko') }
+    return sortDir * (va - vb)
+  })
+
+  if (!list.length) { $('grid-body').innerHTML = `<tr><td colspan="${COLS.length}" class="empty">지원자가 없습니다.</td></tr>`; return }
+
+  $('grid-body').innerHTML = list.map((a, i) => {
+    const cat = catOf(a)
+    // 뉴비면 세부 파트를, 표준 외 파트(예: 마케팅)면 원본 라벨을 보조 표기
+    const subPart = (a.track_type === 'newbie' && a.part && PARTS.includes(a.part)) ? a.part
+      : (a.track_type !== 'newbie' && a.part && !PARTS.includes(a.part)) ? a.part : ''
+    const partCell = `<span class="chip p-${cat}">${cat}</span>` +
+      (subPart ? `<span class="sub-part">${esc(subPart)}</span>` : '') +
+      (a.track_type === 'fast_lane' ? `<span class="tag tag-fast">FAST</span>` : '') +
+      (a.is_late ? `<span class="tag tag-late">지각</span>` : '')
+    const stage = a.stage || '서류접수'
+    const itv = itvTime(a)
+    return `<tr>
+      <td class="center muted">${i + 1}</td>
+      <td class="name">${esc(a.name)}</td>
+      <td>${partCell}</td>
+      <td>${a.referrer ? esc(a.referrer) : '<span class="muted">–</span>'}</td>
+      <td class="mono">${esc(a.phone) || '<span class="muted">–</span>'}</td>
+      <td class="mono muted">${esc(a.email) || '–'}</td>
+      <td>${itv ? esc(itv) : '<span class="muted">미정</span>'}</td>
+      <td class="num score">${fmtScore(a.score)}</td>
+      <td class="center"><span class="st st-${stage}">${esc(stage)}</span></td>
+    </tr>`
+  }).join('')
+}
+
+// ---------- 이벤트 ----------
+$('btn-login').addEventListener('click', login)
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+$('btn-logout').addEventListener('click', logout)
+$('btn-refresh').addEventListener('click', () => loadApps().catch(e => alert(e.message)))
+$('season-sel').addEventListener('change', () => loadApps().catch(e => alert(e.message)))
+$('search').addEventListener('input', renderGrid)
+$('grid-head').addEventListener('click', e => {
+  const th = e.target.closest('th[data-key]'); if (!th) return
+  const key = th.dataset.key
+  if (!['score','name','stage'].includes(key)) return
+  if (sortKey === key) sortDir *= -1
+  else { sortKey = key; sortDir = key === 'score' ? -1 : 1 }
+  renderGrid()
+})
+
+// 자동 로그인
+if (sessionStorage.getItem(PW_KEY)) {
+  boot().then(() => {
+    $('view-login').style.display = 'none'
+    $('view-main').style.display = 'flex'
+  }).catch(() => sessionStorage.removeItem(PW_KEY))
+}
+</script>
+</body>
+</html>
