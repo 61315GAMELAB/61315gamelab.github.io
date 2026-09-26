@@ -1,5 +1,5 @@
 +++
-title = "Butter PoP (버터팝) - 세상 모든 것에 버터를 올리세요!"
+title = "Butter PoP(버터팝) - 세상 모든 것에 버터를 올리세요!"
 date = "2026-09-26"
 draft = false
 description = "버터를 튕겨, 어디든 올려라🧈 말랑한 ASMR과 50개의 예측불가 타깃!"
