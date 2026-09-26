@@ -1,14 +1,15 @@
 +++
 title = "Butter PoP (버터팝) - 세상 모든 것에 버터를 올리세요!"
 date = "2026-09-26"
-draft = true
+draft = false
 description = "버터를 튕겨, 어디든 올려라🧈 말랑한 ASMR과 50개의 예측불가 타깃!"
 categories = [
     "project"
 ]
 tags = [
-    "activity"
+    "Project"
 ]
+image = "버터팝_게임설명이미지.png"
 +++
 
 버터를 튕겨라. 목표물 위에 올려라.🧈
@@ -32,3 +33,6 @@ tags = [
 
 가장 가벼운 규칙 위에 가장 유쾌한 감각을 담았어요.
 다음 목표물은 뭘까요? 지금 버터를 튕겨보세요!
+
+![](버터팝_게임설명이미지.png)
+![](버터팝_홍보이미지.png)
