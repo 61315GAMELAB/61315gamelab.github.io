@@ -9,7 +9,7 @@ categories = [
 tags = [
     "project"
 ]
-image = "title.png"
+image = "image1.png"
 +++
 
 씨앗을 심고, 물을 주고, 식물을 돌보세요.
@@ -45,3 +45,4 @@ image = "title.png"
 창가에 작은 씨앗 하나를 심어보세요. 🌱
 
 ![](title.png)
+![](image1.png)
