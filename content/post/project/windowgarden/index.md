@@ -43,6 +43,3 @@ image = "image1.png"
 
 오늘의 날씨는 어떨까요?
 창가에 작은 씨앗 하나를 심어보세요. 🌱
-
-![](title.png)
-![](image1.png)
